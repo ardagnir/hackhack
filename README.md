@@ -8,7 +8,7 @@ Vim 7+ with python support<br/>
 the ConqueTerm vim plugin (http://code.google.com/p/conque/)<br/>
 <br/>
 <H5>Installation:</H5>
-Copy hackhack.vim to your plugins directory<br/>
+Copy hackhack.vim to your plugin directory<br/>
 <br/>
 <H5>Use:</H5>
 Call the HackHack function with your chosen shell.<br/>
