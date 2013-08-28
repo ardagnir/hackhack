@@ -21,7 +21,7 @@ The bottom line is the hackhack console. If your cursor is in that area:<br/>
 Pressing <b>return</b> sends a command line to the shell.<br/>
 <b>Control C</b> and <b>Control D</b> are sent directly to the shell.<br/>
 You can edit command lines to send to the shell using insert mode.<br/>
-In normal mode you can navigate through your command line using standard vim-keys or search through the history using <b>/</b>, <b>?</b>, <b>j</b> and <b>k</b> in normal mode.<br/>
+In normal mode you can navigate through your command line using standard vim-keys or search through the history using <b>/</b>, <b>?</b>, <b>j</b> and <b>k</b><br/>
 The line of history you are accessing in history is marked with a '>'. Up to one modified history line is stored in a temporary buffer marked with a '.'. Pressing <b>'G'</b> or scrolling down to the current line also accesses that buffer.<br/>
 Hackhack uses it's own history which is seperate from the history of your shell.<br/>
 <br/><br/>
