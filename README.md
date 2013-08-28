@@ -23,6 +23,7 @@ Pressing <b>return</b> sends a command line to the shell.<br/>
 You can edit command lines to send to the shell using insert mode.<br/>
 In normal mode you can navigate through your command line using standard vim-keys or search through the history using <b>/</b>, <b>?</b>, <b>j</b> and <b>k</b> in normal mode.<br/>
 The line of history you are accessing in history is marked with a '>'. Up to one modified history line is stored in a temporary buffer marked with a '.'. Pressing <b>'G'</b> or scrolling down to the current line also accesses that buffer.<br/>
+Hackhack uses it's own history which is seperate from the history of your shell.<br/>
 <br/><br/>
 <H5>Todo:</H5>
 <ul>
@@ -34,7 +35,7 @@ The line of history you are accessing in history is marked with a '>'. Up to one
 <li>Make a way to scroll through only parts of history that match current input.</li>
 <li>Implement search history.</li>
 <li>Add support for marks.</li>
-<ul>
-
+</ul>
+<br/>
 <H5>License:</H5>
 HackHack is licensed under the AGPL v3.0.
