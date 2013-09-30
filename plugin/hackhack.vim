@@ -192,7 +192,6 @@ endfunction
 "
 
 let g:S_TypingSearch=0
-let g:S_AllowPromptFixing=1
 let g:S_NormalPromptChar='>'
 let g:S_PromptChar=g:S_NormalPromptChar
 let g:S_TempBuffer=""
@@ -242,41 +241,6 @@ function! g:S_GotoHistoryEnd()
   call g:S_AddArrow()
 endfunction
 
-"function! g:S_FixPrompt(insertMode)
-  "if !g:S_AllowPromptFixing
-    "return
-  "endif
-  "while getpos('.')[1]>1
-    "normal!gg"_ddG
-  "endwhile
-  "if getpos('.')[2]==1
-    "let tempReg=getreg('"', 1)
-    "let regType=getregtype('"')
-    "normal!yl
-    "let capturedKey=@"
-    "call setreg('"',tempReg,regType)
-    "if capturedKey!=g:S_PromptChar
-      "exec "normal!i".g:S_PromptChar
-    "endif
-    "normal!l
-  "endif
-  "if getpos('.')[2]<=2
-    "let tempReg=getreg('"', 1)
-    "let regType=getregtype('"')
-    "normal!yl
-    "let capturedKey=@"
-    "call setreg('"',tempReg,regType)
-    "if capturedKey!=" "
-      "exec "normal!0a "
-    "endif
-    "normal!l
-  "endif
-  ""extra steps need to be taken for a blank line in insert mode
-  "if getpos('.')[2]<=2 && a:insertMode
-    "startinsert!
-  "endif
-"endfunction
-
 let g:S_SearchTerm=""
 let g:S_MatchCount=0
 
@@ -303,14 +267,12 @@ function! g:S_NextSearch(direction)
 endfunction
 
 function! g:S_Search(mode)
-  let g:S_AllowPromptFixing=0
   let g:S_SearchMode=a:mode 
   let g:S_TypingSearch=1
   call g:S_StoreTempBuffer()
   exec "normal!\"_dd"
   let g:S_PromptChar=a:mode
   call g:S_ChangePrompt(g:S_PromptChar)
-  let g:S_AllowPromptFixing=1
 endfunction
 
 function! g:S_GrabCommandLine()
@@ -422,13 +384,7 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
           let g:S_PromptChar=g:S_NormalPromptChar
         endif
         if g:S_PromptChar!=oldPromptChar
-          "don't switch buffers, do it from this buffer
-          call g:S_GotoHackPrompt()
-          "let pos = getpos('.')
-          "exec "normal!0r".g:S_PromptChar
-          "call setpos('.',pos)
           call g:S_ChangePrompt(g:S_PromptChar)
-          call g:S_GotoHackDisplay()
         endif
       endif
     endif
@@ -507,7 +463,6 @@ function! g:S_UpdateTerminal(insert_mode, hackPrompt)
 endfunction!
 
 function! g:S_TabPress()
-    let g:S_AllowPromptFixing=0
     let tempReg=getreg('"', 1)
     let regType=getregtype('"')
     normal! 0d$
@@ -525,7 +480,6 @@ function! g:S_TabPress()
     call conque_term#get_instance().read(50,0)
     silent call g:S_GotoHackPrompt()
     exec "normal!\"_ddi".tabcompletevar
-    let g:S_AllowPromptFixing=1
 endfunction
 
 function! g:S_RestartUpdateCounter(insert_mode)
@@ -705,7 +659,6 @@ function! g:S_AddArrow()
 endfunction
 
 function! g:S_GrabFromHistory()
-  let g:S_AllowPromptFixing=0
   "The bottom line always retrieves the temp buffer
   if g:S_HistoryIndex==g:S_TempBufferIndex || g:S_HistoryIndex==0
     normal! gg"_dG
@@ -717,7 +670,6 @@ function! g:S_GrabFromHistory()
     exec "normal!A".historyLine
     normal! gg
   endif
-  let g:S_AllowPromptFixing=1
 endfunction
 
 function! g:S_MapNumbers()
