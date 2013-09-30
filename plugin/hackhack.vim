@@ -367,8 +367,9 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
     endif
     let readInput=conque_term#get_instance().read(a:howLong)
     "Conqueterm will set the status line if it gets changed by a control char
-    call g:S_DashStatusLine()
-
+    if g:ReadlineMode==1
+      call g:S_DashStatusLine()
+    endif
 
     if g:ReadlineMode==1
       call g:S_Dashify()
