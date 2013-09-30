@@ -29,7 +29,7 @@ If you move to the main terminal window, hackhack will enter "Browse Mode". You 
 ##Todo:
 - Make hackhack play nicer with other vim split windows.
 - Make hackhack play nicer with other hackhack split windows.
-- Bugfixes for conque and better conque integration.
+- Bugfixes for conque and better conque integration. (Especially fixing color)
 - Better readme/documentation
 - Fix n and N so they search from cursor position instead of last search position.
 - Incremental searching.
