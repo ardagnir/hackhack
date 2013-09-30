@@ -93,7 +93,7 @@ function! HackHack(commandName, ...)
   sign define Z text=Z texthl=HHPrompt
   "This will gIve an Error but still work
   silent! sign define blank text=  texthl=HHPrompt
-  setlocal statusline=%#HHBorder#-\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ %<
+  call g:S_DashStatusLine()
   "nnoremap <buffer> s <C-W>j
   
   nnoremap <buffer> i :call g:S_ShowPrompt()<CR>i
@@ -124,8 +124,10 @@ function! HackHack(commandName, ...)
     endwhile
     let g:S_windowName=g:S_windowName.counter
   endif
-  exec "sign place 1 line=1 name=blank buffer=".bufnr(expand("%"))
+  let g:S_HackDisplayBuffer=bufnr(expand("%"))
+  exec "sign place 1 line=1 name=blank buffer=".g:S_HackDisplayBuffer
   exec "belowright 1 split ".g:S_windowName
+  let g:S_HackPromptBuffer=bufnr(expand("%"))
   setlocal winfixheight
   setlocal noswapfile
   setlocal bufhidden=hide
@@ -177,12 +179,12 @@ function! HackHack(commandName, ...)
   call g:S_MapNumbers()
   call g:S_MapRegisters()
 
-  wincmd k
+  call g:S_GotoHackDisplay()
   "syntax match garbage /_237.*_237/ conceal
   call g:S_ExtendLines()
   call g:S_ReadAndUpdatePromptChar(200)
   "normal!0i>
-  wincmd j
+  call g:S_GotoHackPrompt()
   normal!dd
 endfunction
 "eventully i should name my terminals and input windows
@@ -203,9 +205,7 @@ function! g:S_ClearUnfocusedEntries()
   if buflisted(g:S_windowName) && expand('%')!=g:S_windowName
     if g:ReadlineMode == 1
       let g:ReadlineMode = 2
-      wincmd j
       call g:S_HidePrompt()
-      wincmd k
     endif
   endif
 endfunction
@@ -366,6 +366,10 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
       echo ""
     endif
     let readInput=conque_term#get_instance().read(a:howLong)
+    "Conqueterm will set the status line if it gets changed by a control char
+    call g:S_DashStatusLine()
+
+
     if g:ReadlineMode==1
       call g:S_Dashify()
     else
@@ -379,11 +383,11 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
       "let g:lastPathLine=getpos('.')[1]
       "exec "normal!d4ld/_237\<CR>"
       "normal!"_d4l
-      "wincmd j
+      "call g:S_GotoHackPrompt()
       "exec "lcd ".@"
       "let g:lastPathString=@"
       ""make sure to save register!!!
-      "wincmd k
+      "call g:S_GotoHackDisplay()
       "silent! exec "normal!gg/^_237\<CR>"
     "endwhile
     "normal!G
@@ -418,19 +422,17 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
         endif
         if g:S_PromptChar!=oldPromptChar
           "don't switch buffers, do it from this buffer
-          wincmd j
+          call g:S_GotoHackPrompt()
           "let pos = getpos('.')
           "exec "normal!0r".g:S_PromptChar
           "call setpos('.',pos)
           call g:S_ChangePrompt(g:S_PromptChar)
-          wincmd k
+          call g:S_GotoHackDisplay()
         endif
       endif
     endif
     if g:ReadlineMode==0 && startingInReadline==1
-      wincmd j
       call g:S_HidePrompt()
-      wincmd k
     elseif g:ReadlineMode==1 && startingInReadline==0
       call g:S_ShowPrompt()
       return 1
@@ -439,9 +441,10 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
 endfunction
 
 function! g:S_HidePrompt()
-    normal!ZZ
+    exec "bunload!".g:S_HackPromptBuffer
+    call g:S_GotoHackDisplay()
     call g:S_UnDashify()
-    exec "sign unplace * buffer=".bufnr(expand("%"))
+    exec "sign unplace * buffer=".g:S_HackDisplayBuffer
     if g:ReadlineMode==0
       exec "setlocal statusline=".g:S_windowName."\\ (Direct\\ Input)"
       call g:S_MapDirectInputKeys()
@@ -456,8 +459,9 @@ function! g:S_ShowPrompt()
   call g:S_UnmapDirectInputKeys()
   "RESTORE OLD BUFFER
   let g:ReadlineMode=1
-  setlocal statusline=%#HHBorder#-\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ %<
+  call g:S_DashStatusLine()
   exec "belowright 1 split ".g:S_windowName
+  normal!"_dd
   setlocal winfixheight
   call g:S_AddArrow()
 endfunction
@@ -469,12 +473,12 @@ function! g:S_UpdateTerminal(insert_mode, hackPrompt)
       return
     endif
     if hackPrompt
-      wincmd k
+      call g:S_GotoHackDisplay()
     endif
     "normal!G0"_x
     if g:S_ReadAndUpdatePromptChar(0)
       let hackPrompt=1
-      wincmd k
+      call g:S_GotoHackDisplay()
       startinsert
     endif
     if g:S_HistoryIndex==0 && g:ReadlineMode==1
@@ -496,7 +500,7 @@ function! g:S_UpdateTerminal(insert_mode, hackPrompt)
       call g:S_GotoArrowLine()
     endif
     if hackPrompt
-      wincmd j
+      call g:S_GotoHackPrompt()
     endif
     call g:S_RestartUpdateCounter(insert_mode)
 endfunction!
@@ -508,7 +512,7 @@ function! g:S_TabPress()
     normal! 0d$
     let capturedKeys=@"
     call setreg('"',tempReg,regType)
-    silent wincmd k
+    silent call g:S_GotoHackDisplay()
     call conque_term#get_instance().write(capturedKeys."\t")
     let tabcompletevar=""
     let sanity=10
@@ -518,7 +522,7 @@ function! g:S_TabPress()
     endwhile
     call conque_term#get_instance().write("\x15")
     call conque_term#get_instance().read(50,0)
-    silent wincmd j
+    silent call g:S_GotoHackPrompt()
     exec "normal!\"_ddi".tabcompletevar
     let g:S_AllowPromptFixing=1
 endfunction
@@ -541,7 +545,7 @@ let g:S_SearchMode=' '
 
 function! g:S_SendLine(line)
   let g:lineSent=a:line
-  silent wincmd k
+  silent call g:S_GotoHackDisplay()
   call g:S_JumpToLastLine()
   let g:S_History=g:S_History+[a:line[0:-2]]
   let g:S_ZeroArrowPoint=getpos('.')[1]
@@ -559,7 +563,7 @@ function! g:S_SendLine(line)
     call g:S_AddArrowNoJump()
   endif
   "exec "normal!G0i>\<ESC>$"
-  silent wincmd j
+  silent call g:S_GotoHackPrompt()
 endfunction
 
 let g:S_fullBuffer=""
@@ -578,13 +582,13 @@ function! g:S_CarriageReturn(insertMode)
     call g:S_ChangePrompt(g:S_PromptChar)
     return
   endif
-  "silent wincmd k
+  "silent call g:S_GotoHackDisplay()
   "let tempReg=getreg('"', 1)
   "let regType=getregtype('"')
   "silent normal!ggyG
   "let g:S_fullBuffer=@"
   "call setreg('"',tempReg,regType)
-  "silent wincmd j
+  "silent call g:S_GotoHackPrompt()
   call g:S_EraseOldBufferMarker()
   let g:S_TempBuffer=""
   let g:S_TempBufferIndex=-1
@@ -593,21 +597,16 @@ function! g:S_CarriageReturn(insertMode)
   call g:S_RestartUpdateCounter(a:insertMode)
 endfunction
 
-function! g:S_TestTop()
-  call conque_term#get_instance().write("top\n")
-  let g:result=conque_term#get_instance().read(1000)
-endfunction
-
 function! g:S_EraseOldBufferMarker()
   "if g:S_TempBufferIndex>=0
-    "wincmd k
+    "call g:S_GotoHackDisplay()
     "if g:S_TempBufferIndex==0
       "exec "normal!".g:S_ZeroArrowPoint."gg"
     "else
       "exec "normal!".g:S_HistoryLine[-g:S_TempBufferIndex]."gg"
     "endif
     "exec "normal!0r "
-    "wincmd j
+    "call g:S_GotoHackPrompt()
   "endif
   sign unplace 4
 endfunction
@@ -677,39 +676,31 @@ endfunction
 function! g:S_RemoveArrowNoJump()
   let lineNum=g:S_GetArrowLine()
   if g:S_HistoryIndex==g:S_TempBufferIndex
-    exec "sign place 4 line=".lineNum." name=dot buffer=".bufnr(expand("%"))
+    exec "sign place 4 line=".lineNum." name=dot buffer=".g:S_HackDisplayBuffer
   else
-    exec "sign place 1 line=".lineNum." name=blank buffer=".bufnr(expand("%"))
+    exec "sign place 1 line=".lineNum." name=blank buffer=".g:S_HackDisplayBuffer
   endif
   exec "sign unplace ".2
 endfunction
 
-"I shouldn't need to jump, since i can set on ann buffer
+"Delete this
 function! g:S_RemoveArrow()
-  wincmd k
-  "call g:S_GotoArrowLine()
-  "if g:S_HistoryIndex==g:S_TempBufferIndex
-    "exec "normal!0r".g:S_BufferMarker."$"
-  "else
-    "normal!0r $
-  "endif
   call g:S_RemoveArrowNoJump()
-  wincmd j
 endfunction
 
 function! g:S_AddArrowNoJump()
   let lineNum=g:S_GetArrowLine()
   exec "normal!".lineNum."gg"
-  exec "sign place 2 line=".lineNum." name=doublearrow buffer=".bufnr(expand("%"))
+  exec "sign place 2 line=".lineNum." name=doublearrow buffer=".g:S_HackDisplayBuffer
   sign unplace 1
 endfunction
 
 function! g:S_AddArrow()
-  wincmd k
+  call g:S_GotoHackDisplay()
   "call g:S_GotoArrowLine()
   "normal!0r>
   call g:S_AddArrowNoJump()
-  wincmd j
+  call g:S_GotoHackPrompt()
 endfunction
 
 function! g:S_GrabFromHistory()
@@ -860,36 +851,35 @@ endfunction
 function! g:S_ChangePrompt(promptChar)
   sign unplace 3
   exec "sign define prompt text=".a:promptChar." texthl=HHPrompt"
-  exec "sign place 3 line=1 name=prompt buffer=".bufnr(expand("%"))
+  exec "sign place 3 line=1 name=prompt buffer=".g:S_HackPromptBuffer
 endfunction
 
 function! g:S_Mark()
   let num=getchar()
   let char=nr2char(num)
-  wincmd k
+  call g:S_GotoHackDisplay()
     call g:S_GotoArrowLine()
     silent! exec "normal!m".char
     silent! exec "sign unplace ".num
-    silent! exec "sign place ".num." line=".g:S_GetArrowLine()." name=".char." buffer=".bufnr(expand("%"))
-  wincmd j
+    silent! exec "sign place ".num." line=".g:S_GetArrowLine()." name=".char." buffer=".g:S_HackDisplayBuffer
+  call g:S_GotoHackPrompt()
 endfunction
 
 function! g:S_GotoMark()
   let char=nr2char(getchar())
-  wincmd k
+  call g:S_GotoHackDisplay()
     echo getpos("'a")
     silent! exec "normal!'".char
     call g:S_HistoryFromCursorPos()
-  wincmd j
+  call g:S_GotoHackPrompt()
 endfunction
 
 function! g:S_HistoryFromCursorPos()
   let cursorline = getpos('.')[1]
-  wincmd j
+  call g:S_GotoHackPrompt()
   call g:S_StoreTempBuffer()
-  wincmd k
-  call g:S_RemoveArrowNoJump()
-  if cursorline==g:S_ZeroArrowPoint
+  call g:S_GotoHackDisplay()
+  call g:S_RemoveArrowNoJump() if cursorline==g:S_ZeroArrowPoint
     let g:S_HistoryIndex = 0
   else
     let g:S_HistoryIndex = 1
@@ -897,9 +887,9 @@ function! g:S_HistoryFromCursorPos()
       let g:S_HistoryIndex+=1
     endwhile
   endif
-  wincmd j
+  call g:S_GotoHackPrompt()
   call g:S_GrabFromHistory()
-  wincmd k
+  call g:S_GotoHackDisplay()
   call g:S_AddArrowNoJump()
 endfunction
 
@@ -941,6 +931,18 @@ function! g:S_UnmapDirectInputKeys()
     endif
     let i+=1
   endwhile
+endfunction
+
+function! g:S_GotoHackPrompt()
+  exec bufwinnr(g:S_HackPromptBuffer)."wincmd w"
+endfunction
+
+function! g:S_GotoHackDisplay()
+  exec bufwinnr(g:S_HackDisplayBuffer)."wincmd w"
+endfunction
+
+function! g:S_DashStatusLine()
+  setlocal statusline=%#HHBorder#-\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ %<
 endfunction
 
 
