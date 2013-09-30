@@ -199,6 +199,7 @@ let g:S_TempBufferIndex=-1
 let g:S_BufferMarker="."
 let g:S_windowName=""
 let g:S_mode="normal"
+let g:S_PotentialPromptChar='$'
 
 function! g:S_ClearUnfocusedEntries()
   if buflisted(g:S_windowName) && expand('%')!=g:S_windowName
@@ -375,17 +376,19 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
       endwhile
 
       if readInput[possiblePromptIndex]!=" " && readInput[possiblePromptIndex]!=""
+        let g:S_PotentialPromptChar=readInput[possiblePromptIndex]
+      else
         let oldPromptChar=g:S_PromptChar
-        let g:S_NormalPromptChar=readInput[possiblePromptIndex]
-        if g:S_NormalPromptChar==" " || g:S_NormalPromptChar=="\n"
-          let g:S_NormalPromptChar="."
-        endif
-        if !g:S_TypingSearch
-          let g:S_PromptChar=g:S_NormalPromptChar
-        endif
-        if g:S_PromptChar!=oldPromptChar
-          call g:S_ChangePrompt(g:S_PromptChar)
-        endif
+          let g:S_NormalPromptChar=g:S_PotentialPromptChar
+          if g:S_NormalPromptChar==" " || g:S_NormalPromptChar=="\n"
+            let g:S_NormalPromptChar="."
+          endif
+          if !g:S_TypingSearch
+            let g:S_PromptChar=g:S_NormalPromptChar
+          endif
+          if g:S_PromptChar!=oldPromptChar
+            call g:S_ChangePrompt(g:S_PromptChar)
+          endif
       endif
     endif
     if g:ReadlineMode==0 && startingInReadline==1
