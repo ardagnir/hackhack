@@ -94,15 +94,8 @@ function! HackHack(commandName, ...)
   "This will gIve an Error but still work
   silent! sign define blank text=  texthl=HHPrompt
   call g:S_DashStatusLine()
-  "nnoremap <buffer> s <C-W>j
+  call g:S_SetBrowseMappings()
   
-  nnoremap <buffer> i :call g:S_ShowPrompt()<CR>i
-  nnoremap <buffer> I :call g:S_ShowPrompt()<CR>I
-  nnoremap <buffer> a :call g:S_ShowPrompt()<CR>a
-  nnoremap <buffer> A :call g:S_ShowPrompt()<CR>A
-  "make these use the dumb things
-  nnoremap <buffer> p :call g:S_ShowPrompt()<CR>:exec 'normal!"'.v:register.'p'<CR>
-  nnoremap <buffer> P :call g:S_ShowPrompt()<CR>:exec 'normal!"'.v:register.'p'<CR>
   call matchadd('HHBorder', '^¦')
   augroup HackHack
     autocmd! CursorHold 
@@ -167,11 +160,11 @@ function! HackHack(commandName, ...)
   nnoremap <silent> <buffer> '. :call g:S_GotoTempBuffer()<CR>
   nnoremap <silent> <buffer> ' :call g:S_GotoMark()<CR>
   nnoremap <silent> <buffer> m :call g:S_Mark()<CR>
-  nnoremap <silent> <buffer> mm :call g:S_Mark()<CR>
-  nnoremap g? ?
-  nnoremap g/ /
-  nnoremap gn n
-  nnoremap gN N
+  nnoremap <silent> <buffer> g? ?
+  nnoremap <silent> <buffer> g/ /
+  nnoremap <silent> <buffer> gn n
+  nnoremap <silent> <buffer> gN N
+  call g:S_DummyMap('m<ESC>')
 
 
   "stop updates from breaking window switcheg:S_"
@@ -202,11 +195,13 @@ let g:S_mode="normal"
 let g:S_PotentialPromptChar='$'
 
 function! g:S_ClearUnfocusedEntries()
-  if buflisted(g:S_windowName) && expand('%')!=g:S_windowName
+  if buflisted(g:S_windowName) && expand('%')!=g:S_windowName && g:ReadlineMode == 1
     if g:ReadlineMode == 1
       let g:ReadlineMode = 2
       call g:S_HidePrompt()
     endif
+    "Go back to window this was called from
+    exec winnr('#')."wincmd w"
   endif
 endfunction
 
@@ -417,6 +412,7 @@ endfunction
 
 function! g:S_ShowPrompt()
   call g:S_UnmapDirectInputKeys()
+  call g:S_SetBrowseMappings()
   "RESTORE OLD BUFFER
   let g:ReadlineMode=1
   call g:S_DashStatusLine()
@@ -770,7 +766,7 @@ endfunction
 "Dummy maps shouldn't affect anything except that they will stop cursorhold
 "from triggering in the middle of their key sequence.
 function! g:S_DummyMap(mapping)
-  if mapcheck(a:mapping, "n") == ""
+  if maparg(a:mapping, "n") == ""
     exec "nnoremap <unique> ".a:mapping." ".a:mapping
   endif
 endfunction
@@ -835,7 +831,8 @@ function! g:S_HistoryFromCursorPos()
   call g:S_GotoHackPrompt()
   call g:S_StoreTempBuffer()
   call g:S_GotoHackDisplay()
-  call g:S_RemoveArrowNoJump() if cursorline==g:S_ZeroArrowPoint
+  call g:S_RemoveArrowNoJump()
+  if cursorline==g:S_ZeroArrowPoint
     let g:S_HistoryIndex = 0
   else
     let g:S_HistoryIndex = 1
@@ -901,7 +898,14 @@ function! g:S_DashStatusLine()
   setlocal statusline=%#HHBorder#-\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ -\ %<
 endfunction
 
-
+function! g:S_SetBrowseMappings()
+  nnoremap <buffer> i :call g:S_ShowPrompt()<CR>i
+  nnoremap <buffer> I :call g:S_ShowPrompt()<CR>I
+  nnoremap <buffer> a :call g:S_ShowPrompt()<CR>a
+  nnoremap <buffer> A :call g:S_ShowPrompt()<CR>A
+  nnoremap <buffer> p :call g:S_ShowPrompt()<CR>:exec 'normal!"'.v:register.'p'<CR>
+  nnoremap <buffer> P :call g:S_ShowPrompt()<CR>:exec 'normal!"'.v:register.'p'<CR>
+endfunction
   
 
 let &cpo = g:S_save_cpo
