@@ -781,7 +781,6 @@ function! g:S_UnDashify()
 endfunction
 
 function! g:S_ExtendLines()
-  "let origline=getpos('.')[1]
   normal! H
   let topLine=getpos('.')[1]
   normal! L
@@ -790,7 +789,6 @@ function! g:S_ExtendLines()
     exec "normal!".(winheight(winnr())-numLines)."o\<ESC>"
   endif
   return
-  "exec "normal!".origline."gg"
 endfunction
 
 function! g:S_JumpToLastLine()
@@ -798,6 +796,7 @@ function! g:S_JumpToLastLine()
   while getpos('.')[2]==1
     normal!k$
   endwhile
+  normal!zb
 endfunction
 
 function! g:S_ChangePrompt(promptChar)
