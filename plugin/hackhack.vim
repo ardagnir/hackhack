@@ -849,17 +849,17 @@ function! g:S_MapDirectInputKeys()
   let g:i=1
   while g:i<256
     if g:i==124
-      silent exec "nnoremap <buffer> \\| :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> \\| :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     elseif g:i==9
-      silent exec "nnoremap <buffer> <TAB> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> <TAB> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     elseif g:i==10
-      silent exec "nnoremap <buffer> <C-J> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> <C-J> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     elseif g:i==22
-      silent exec "nnoremap <buffer> <C-V> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> <C-V> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     elseif g:i==32
-      silent exec "nnoremap <buffer> <SPACE> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> <SPACE> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     else
-      silent exec "nnoremap <buffer> ".nr2char(g:i)." :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> ".nr2char(g:i)." :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     endif
     let g:i+=1
   endwhile
