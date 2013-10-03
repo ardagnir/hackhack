@@ -1,7 +1,7 @@
 hackhack
 ========
 
-HackHack is a vim plugin for running a shell within vim that responds to vim commands. It's basically like readline's vi-mode ...crossed with ninjapirates that shoot lasers out of their eyes.
+HackHack is a vim plugin for running a shell within vim that responds to vim commands. It's basically like bash/readline's vi-mode, except that it's a vim mode and much more awesome.
 
 ##Requirements:
 - Vim 7+ with python support
