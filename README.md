@@ -26,17 +26,10 @@ If you run a curses-style application, it will temporarily go into "Direct Input
 
 If you move to the main terminal window, hackhack will enter "Browse Mode". You can use this to search through text output and yank from it. Hitting a,i, or p will jump you back into normal mode.
 
-##Todo:
-- Make hackhack play nicer with other vim split windows.
-- Make hackhack play nicer with other hackhack split windows.
-- Bugfixes for conque and better conque integration. (Especially fixing color)
-- Better readme/documentation
-- Fix n and N so they search from cursor position instead of last search position.
-- Incremental searching.
-- Add support for smartcase searching.
-- Better tab completion support.
-- Make a way to scroll through only parts of history that match current input.
-- Implement search history.
+##Todo/Bugs:
+Hackhack is still rough around the edges, but I'm keeping track of progress in the issue tracker:
+
+https://github.com/ardagnir/hackhack/issues?state=open
 
 ##License:
 HackHack is licensed under the AGPL v3.0.
