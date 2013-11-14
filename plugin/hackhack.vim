@@ -149,8 +149,8 @@ function! HackHack(commandName, ...)
   inoremap <silent> <buffer> <TAB> <ESC>:call g:S_TabPress()<CR>A
   nnoremap <silent> <buffer> / :call g:S_Search('/')<CR>A
   nnoremap <silent> <buffer> ? :call g:S_Search('?')<CR>A
-  nnoremap <silent> <buffer> n @=":call g:S_NextSearch(1)<C-V><CR>"<CR>:echo ""<CR>
-  nnoremap <silent> <buffer> N @=":call g:S_NextSearch(-1)<C-V><CR>"<CR>:echo ""<CR>
+  nnoremap <silent> <buffer> n @=":call g:S_DoSearch(0)<C-V><CR>"<CR>:echo ""<CR>
+  nnoremap <silent> <buffer> N @=":call g:S_DoSearch(1)<C-V><CR>"<CR>:echo ""<CR>
   nnoremap <silent> <buffer> <C-C> :call g:S_SendLine("\x03")<CR>
   inoremap <silent> <buffer> <C-C> <C-O>:call g:S_SendLine("\x03")<CR>
   nnoremap <silent> <buffer> <C-D> :call g:S_SendLine("\x04")<CR>
@@ -281,28 +281,33 @@ function! g:S_GrabCommandLine()
   return ret
 endfunction
 
-function! g:S_DoSearch()
+function! g:S_DoSearch_FromCL()
   let g:S_PromptChar=g:S_NormalPromptChar
   "match ignores smartcase, so if smartcase is set and there are NO upper case
   "in search, we'll perform a case insenesitve search ourselves
+  let g:S_SearchTerm=split(g:S_GrabCommandLine().'\n ','\n')[0]
+  call g:S_DoSearch(0)
+  let g:S_TypingSearch=0
+endfunction
+
+function! g:S_DoSearch(reversed)
+  let downward = ( g:S_SearchMode=="/" && !a:reversed || g:S_SearchMode=="?" && a:reversed)
   let reverseHistoryIndex=len(g:S_History)-g:S_HistoryIndex
   let caseMagic=0
-  let g:S_SearchTerm=split(g:S_GrabCommandLine().'\n ','\n')[0]
   let g:S_MatchCount=0
   let searchLocation=-2
   while searchLocation<reverseHistoryIndex && searchLocation!=-1
     let g:S_MatchCount=g:S_MatchCount+1
     let searchLocation=match(g:S_History,g:S_SearchTerm,0, g:S_MatchCount)
   endwhile
-  if g:S_SearchMode=="/" && searchLocation==reverseHistoryIndex
+  if downward && searchLocation==reverseHistoryIndex
     let g:S_MatchCount=g:S_MatchCount+1
     let searchLocation=match(g:S_History,g:S_SearchTerm,0, g:S_MatchCount)
-  elseif g:S_SearchMode=="?"
+  elseif !downward
     let g:S_MatchCount=g:S_MatchCount-1
     let searchLocation=match(g:S_History,g:S_SearchTerm,0, g:S_MatchCount)
   endif
 
-  let g:S_TypingSearch=0
   if searchLocation>=0
     call g:S_RemoveArrow()
     let g:S_HistoryIndex=len(g:S_History)-searchLocation
@@ -530,7 +535,7 @@ function! g:S_CarriageReturn(insertMode)
     call getchar(0)
   endwhile
   if g:S_TypingSearch!=0
-    call g:S_DoSearch()
+    call g:S_DoSearch_FromCL()
     call feedkeys("\<ESC>",'n')
     let g:S_PromptChar=g:S_NormalPromptChar
     call g:S_ChangePrompt(g:S_PromptChar)
