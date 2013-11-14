@@ -147,8 +147,8 @@ function! HackHack(commandName, ...)
   nnoremap <silent> <buffer> k  @=":call g:S_HistoryUp()<C-V><CR>"<CR>:echo ""<CR>
   nnoremap <silent> <buffer> j  @=":call g:S_HistoryDown()<C-V><CR>"<CR>:echo ""<CR>
   inoremap <silent> <buffer> <TAB> <ESC>:call g:S_TabPress()<CR>A
-  nnoremap <silent> <buffer> / :call g:S_Search('/')<CR>A
-  nnoremap <silent> <buffer> ? :call g:S_Search('?')<CR>A
+  nnoremap <silent> <buffer> / :call g:S_Search('/')<CR>
+  nnoremap <silent> <buffer> ? :call g:S_Search('?')<CR>
   nnoremap <silent> <buffer> n @=":call g:S_DoSearch(0)<C-V><CR>"<CR>:echo ""<CR>
   nnoremap <silent> <buffer> N @=":call g:S_DoSearch(1)<C-V><CR>"<CR>:echo ""<CR>
   nnoremap <silent> <buffer> <C-C> :call g:S_SendLine("\x03")<CR>
@@ -269,6 +269,7 @@ function! g:S_Search(mode)
   exec "normal!\"_dd"
   let g:S_PromptChar=a:mode
   call g:S_ChangePrompt(g:S_PromptChar)
+  startinsert
 endfunction
 
 function! g:S_GrabCommandLine()
