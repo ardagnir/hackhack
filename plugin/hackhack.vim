@@ -269,7 +269,7 @@ function! g:S_Search(mode)
   exec "normal!\"_dd"
   let g:S_PromptChar=a:mode
   call g:S_ChangePrompt(g:S_PromptChar)
-  startinsert
+  call feedkeys("a","n")
 endfunction
 
 function! g:S_GrabCommandLine()
