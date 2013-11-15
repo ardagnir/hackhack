@@ -160,6 +160,7 @@ function! HackHack(commandName, ...)
   nnoremap <silent> <buffer> '. :call g:S_GotoTempBuffer()<CR>
   nnoremap <silent> <buffer> ' :call g:S_GotoMark()<CR>
   nnoremap <silent> <buffer> m :call g:S_Mark()<CR>
+  nnoremap <silent> <buffer> # I#<ESC>:call g:S_CarriageReturn(0)<CR>
   nnoremap <silent> <buffer> g? ?
   nnoremap <silent> <buffer> g/ /
   nnoremap <silent> <buffer> gn n
