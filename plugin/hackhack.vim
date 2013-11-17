@@ -669,12 +669,12 @@ function! g:S_GrabFromHistory()
   if g:S_HistoryIndex==g:S_TempBufferIndex || g:S_HistoryIndex==0
     normal! gg"_dG
     exec "normal!A".g:S_TempBuffer
-    normal! gg
+    normal! gg$
   else
     let historyLine=g:S_History[-g:S_HistoryIndex]
     normal! gg"_dG
     exec "normal!A".historyLine
-    normal! gg
+    normal! gg$
   endif
 endfunction
 
