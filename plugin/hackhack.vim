@@ -423,6 +423,7 @@ function! g:S_ShowPrompt()
   "RESTORE OLD BUFFER
   let g:ReadlineMode=1
   call g:S_DashStatusLine()
+  call g:S_RestoreMarks()
   exec "belowright 1 split ".g:S_windowName
   normal!"_dd
   setlocal winfixheight
@@ -826,7 +827,7 @@ endfunction
 function! g:S_GotoMark()
   let char=nr2char(getchar())
   call g:S_GotoHackDisplay()
-    echo getpos("'a")
+    "echo getpos("'a")
     silent! exec "normal!'".char
     call g:S_HistoryFromCursorPos()
   call g:S_GotoHackPrompt()
@@ -912,7 +913,23 @@ function! g:S_SetBrowseMappings()
   nnoremap <buffer> p :call g:S_ShowPrompt()<CR>:exec 'normal!"'.v:register.'p'<CR>
   nnoremap <buffer> P :call g:S_ShowPrompt()<CR>:exec 'normal!"'.v:register.'p'<CR>
 endfunction
-  
+
+function! g:S_RestoreMarks()
+  "display
+  let lowercase=["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
+  let uppercase=["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
+  let marks=lowercase+uppercase+["."]
+  for mark in marks
+    call g:S_RestoreMark(mark)
+  endfor
+endfunction
+
+function! g:S_RestoreMark(mark)
+  let cursorline = getpos("'".a:mark)[1]
+  if cursorline>0
+    silent! exec "sign place ".char2nr(a:mark)." line=".cursorline." name=".a:mark." buffer=".g:S_HackDisplayBuffer
+  endif
+endfunction
 
 let &cpo = g:S_save_cpo
 unlet g:S_save_cpo
