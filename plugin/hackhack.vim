@@ -35,6 +35,8 @@ function! HackHack(commandName, ...)
   exec "ConqueTerm ".a:commandName
 
   let g:S_HackDisplayBuffer = bufnr(expand('%'))
+  let g:S_WindowSwitched = 0
+  let g:S_CurrentBuffer = g:S_HackDisplayBuffer
 
   let g:S_allBuffers[g:S_HackDisplayBuffer] = {}
   let g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch=0
@@ -127,6 +129,7 @@ function! HackHack(commandName, ...)
   call g:S_SetBrowseMappings()
   
   call matchadd('HHBorder', '^¦')
+  "TODO: This is bad for multihack
   augroup HackHack
     autocmd! CursorHold 
     autocmd! CursorHoldI 
@@ -216,27 +219,29 @@ endfunction
 "and loop through each input window updating it's terminal
 "
 function! g:S_BufferSwitch()
-  let g:S_NewBuffer = winbufnr(winnr())
-  let g:S_WindowSwitched = 1
+  let switchTo = winbufnr(winnr())
+  if switchTo!=g:S_CurrentBuffer
+    let g:S_NewBuffer = switchTo
+    let g:S_WindowSwitched = 1
+  endif
 endfunction
 
 function! g:S_UpdateCurrentWindow()
   if g:S_WindowSwitched==1
     let saveNewBuffer = g:S_NewBuffer
     if has_key(g:S_allBuffers,g:S_HackDisplayBuffer) && expand('%')!=g:S_allBuffers[g:S_HackDisplayBuffer].windowName
-      "We switched hack buffers
+      "We left a hackbuffer (but not to it's prompt)
       let saveWinnr=winnr()
       let g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode = 2
       call g:S_HidePrompt()
-      if winnr()!=saveWinnr
-        exec winnr('#')."wincmd w"
-      endif
       let g:S_HackDisplayBuffer = saveNewBuffer
     elseif !has_key(g:S_allBuffers, g:S_HackDisplayBuffer)
-      "We're on a non-hack buffer
+      "We left a nonhack buffer
       let g:S_HackDisplayBuffer = saveNewBuffer
     endif
-    let g:S_WindowSwitched=0
+    exec bufwinnr(g:S_NewBuffer)."wincmd w"
+    let g:S_CurrentBuffer=g:S_NewBuffer
+    let g:S_WindowSwitched = 0
   endif
 endfunction
 
@@ -249,6 +254,7 @@ function! g:S_ClearUnfocusedEntries()
     endif
     "Go back to window this was called from
     exec winnr('#')."wincmd w"
+    let g:S_CurrentBuffer=winbufnr(winnr())
   endif
 endfunction
 
@@ -374,6 +380,8 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
       echo ""
     endif
     let readInput=conque_term#get_instance().read(a:howLong)
+    "Read can move to a different buffer. We should move back
+    call g:S_GotoHackDisplay()
     "Conqueterm will set the status line if it gets changed by a control char
     if g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode==1
       call g:S_DashStatusLine()
@@ -467,6 +475,7 @@ function! g:S_ShowPrompt()
   let g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode=1
   call g:S_DashStatusLine()
   call g:S_RestoreMarks()
+  call g:S_Dashify()
   exec "belowright 1 split ".g:S_allBuffers[g:S_HackDisplayBuffer].windowName
   "This prompt might not have a sign yet, so let's reset it:
   call g:S_ChangePrompt(g:S_allBuffers[g:S_HackDisplayBuffer].PromptChar)
@@ -475,6 +484,9 @@ function! g:S_ShowPrompt()
   call g:S_AddArrow()
 endfunction
 
+"TODO fix hackprompt: don't check based on whether I was in a prompt, but instead
+"whether the prompt is showing (the current way isn't accurate with
+"multihack)
 function! g:S_UpdateTerminal(insert_mode, hackPrompt)
     if !has_key(g:S_allBuffers,g:S_HackDisplayBuffer)
       return
@@ -485,9 +497,8 @@ function! g:S_UpdateTerminal(insert_mode, hackPrompt)
     if g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode==2
       return
     endif
-    if hackPrompt
-      call g:S_GotoHackDisplay()
-    endif
+    "if hackPrompt=1 (once hack prompt is fixed)
+    call g:S_GotoHackDisplay()
     "normal!G0"_x
     if g:S_ReadAndUpdatePromptChar(0)
       let hackPrompt=1
@@ -933,10 +944,12 @@ function! g:S_UnmapDirectInputKeys()
 endfunction
 
 function! g:S_GotoHackPrompt()
+  let g:S_CurrentBuffer = bufwinnr(g:S_allBuffers[g:S_HackDisplayBuffer].HackPromptBuffer)
   exec bufwinnr(g:S_allBuffers[g:S_HackDisplayBuffer].HackPromptBuffer)."wincmd w"
 endfunction
 
 function! g:S_GotoHackDisplay()
+  let g:S_CurrentBuffer = bufwinnr(g:S_HackDisplayBuffer)
   exec bufwinnr(g:S_HackDisplayBuffer)."wincmd w"
 endfunction
 
