@@ -224,16 +224,18 @@ function! g:S_UpdateCurrentWindow()
   if g:S_WindowSwitched==1
     let saveNewBuffer = g:S_NewBuffer
     if has_key(g:S_allBuffers,g:S_HackDisplayBuffer) && expand('%')!=g:S_allBuffers[g:S_HackDisplayBuffer].windowName
+      "We switched hack buffers
       let saveWinnr=winnr()
+      let g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode = 2
       call g:S_HidePrompt()
       if winnr()!=saveWinnr
         exec winnr('#')."wincmd w"
       endif
       let g:S_HackDisplayBuffer = saveNewBuffer
     elseif !has_key(g:S_allBuffers, g:S_HackDisplayBuffer)
+      "We're on a non-hack buffer
       let g:S_HackDisplayBuffer = saveNewBuffer
     endif
-    "Go back to window this was called from
     let g:S_WindowSwitched=0
   endif
 endfunction
@@ -466,6 +468,8 @@ function! g:S_ShowPrompt()
   call g:S_DashStatusLine()
   call g:S_RestoreMarks()
   exec "belowright 1 split ".g:S_allBuffers[g:S_HackDisplayBuffer].windowName
+  "This prompt might not have a sign yet, so let's reset it:
+  call g:S_ChangePrompt(g:S_allBuffers[g:S_HackDisplayBuffer].PromptChar)
   normal!"_dd
   setlocal winfixheight
   call g:S_AddArrow()
