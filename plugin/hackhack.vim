@@ -484,9 +484,6 @@ function! g:S_ShowPrompt()
   call g:S_AddArrow()
 endfunction
 
-"TODO fix hackprompt: don't check based on whether I was in a prompt, but instead
-"whether the prompt is showing (the current way isn't accurate with
-"multihack)
 function! g:S_UpdateTerminal(insert_mode, hackPrompt)
     if !has_key(g:S_allBuffers,g:S_HackDisplayBuffer)
       return
@@ -497,9 +494,9 @@ function! g:S_UpdateTerminal(insert_mode, hackPrompt)
     if g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode==2
       return
     endif
-    "if hackPrompt=1 (once hack prompt is fixed)
-    call g:S_GotoHackDisplay()
-    "normal!G0"_x
+    if g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode==1
+      call g:S_GotoHackDisplay()
+    endif
     if g:S_ReadAndUpdatePromptChar(0)
       let hackPrompt=1
       call g:S_GotoHackDisplay()
