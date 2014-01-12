@@ -152,7 +152,12 @@ function! HackHack(commandName, ...)
   let g:S_HackDisplayBuffer=bufnr(expand("%"))
   exec "sign place 1 line=1 name=blank buffer=".g:S_HackDisplayBuffer
   exec "belowright 1 split ".g:S_allBuffers[g:S_HackDisplayBuffer].windowName
+
   let g:S_allBuffers[g:S_HackDisplayBuffer].HackPromptBuffer=bufnr(expand("%"))
+
+  "Make sure the prompt gets shown
+  call g:S_ChangePrompt(g:S_allBuffers[g:S_HackDisplayBuffer].PromptChar)
+
   setlocal winfixheight
   setlocal noswapfile
   setlocal bufhidden=hide
