@@ -67,7 +67,6 @@ function! HackHack(commandName, ...)
   else
     let g:S_allBuffers[g:S_HackDisplayBuffer].windowName="HackHack"
   endif
-  setlocal updatetime=400
 
   hi HHBorder ctermfg=DarkBlue cterm=bold guifg=darkgrey
   hi HHPrompt ctermfg=DarkCyan  guifg=darkgrey
@@ -220,7 +219,7 @@ endfunction
 "
 function! g:S_BufferSwitch()
   let switchTo = winbufnr(winnr())
-  if switchTo!=g:S_CurrentBuffer
+  if switchTo!=g:S_CurrentBuffer || g:S_WindowSwitched
     let g:S_NewBuffer = switchTo
     let g:S_WindowSwitched = 1
   endif
@@ -230,7 +229,7 @@ function! g:S_UpdateCurrentWindow()
   if g:S_WindowSwitched==1
     let saveNewBuffer = g:S_NewBuffer
     if has_key(g:S_allBuffers,g:S_HackDisplayBuffer) && expand('%')!=g:S_allBuffers[g:S_HackDisplayBuffer].windowName
-      "We left a hackbuffer (but not to it's prompt)
+      "We left a hackbuffer (but not to its prompt)
       let saveWinnr=winnr()
       let g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode = 2
       call g:S_HidePrompt()
