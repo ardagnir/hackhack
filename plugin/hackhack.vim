@@ -304,7 +304,7 @@ function! g:S_NextSearch(direction)
     let direction=a:direction
   endif
   let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount+direction
-  let g:searchLocation=match(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
+  let g:searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
   if g:searchLocation>=0 && g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount>0
     call g:S_StoreTempBuffer()
     call g:S_RemoveArrow()
@@ -345,6 +345,14 @@ function! g:S_DoSearch_FromCL()
   let g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch=0
 endfunction
 
+function! g:S_SmartMatch(expr, pat, start, count)
+  let addCase=''
+  if &smartcase && match(a:pat, '\C[A-Z]')!=-1
+    let addCase='\C'
+  endif
+  return match(a:expr, addCase.a:pat, a:start, a:count)
+endfunction
+
 function! g:S_DoSearch(reversed)
   let downward = ( g:S_allBuffers[g:S_HackDisplayBuffer].SearchMode=="/" && !a:reversed || g:S_allBuffers[g:S_HackDisplayBuffer].SearchMode=="?" && a:reversed)
   let reverseHistoryIndex=len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex
@@ -353,14 +361,14 @@ function! g:S_DoSearch(reversed)
   let searchLocation=-2
   while searchLocation<reverseHistoryIndex && searchLocation!=-1
     let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount+1
-    let searchLocation=match(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
+    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
   endwhile
   if downward && searchLocation==reverseHistoryIndex
     let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount+1
-    let searchLocation=match(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
+    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
   elseif !downward
     let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount-1
-    let searchLocation=match(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
+    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
   endif
 
   if searchLocation>=0
