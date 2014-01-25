@@ -389,6 +389,10 @@ endfunction
 
 let g:lastPathString=""
 function! g:S_ReadAndUpdatePromptChar(howLong)
+    " Don't do all this work if there's nothing to be read.
+    if conque_term#get_instance().peak() == 0
+      return
+    endif
     let startingInReadline=g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode
     "if g:lastPathString!="" 
       "exec "normal!".g:lastPathLine."gg0i_237".g:lastPathString."_237"
