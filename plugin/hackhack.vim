@@ -27,11 +27,19 @@ let g:loaded_hackhack = 1
 
 let g:S_allBuffers = {}
 
+if !exists("g:HackHack_SetUpdateTime")
+  let g:HackHack_SetUpdateTime = 1
+endif
 
 "CommandName, WindowName (default is hackhack)
 function! HackHack(commandName, ...)
   highlight SignColumn ctermbg=black
-  let g:ConqueTerm_TERM='xterm'
+  let g:ConqueTerm_TERM = 'xterm'
+  let g:ConquePlusPlus_ColorOffset = '\%uA6\?'
+  let g:ConquePlusPlus_SetUpdateTime = 0
+  if g:HackHack_SetUpdateTime
+    set updatetime=200
+  endif
   exec "ConqueTerm ".a:commandName
 
   let g:S_HackDisplayBuffer = bufnr(expand('%'))
