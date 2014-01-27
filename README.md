@@ -5,9 +5,7 @@ HackHack is a vim plugin for running a shell within vim that responds to vim com
 
 ##Requirements:
 - Vim 7+ with python support
-- the ConqueTerm vim plugin
-  - The original is at http://code.google.com/p/conque/
-  - But you should probably use my fixed version: http://github.com/ardagnir/conque-term
+- [conque++](http://github.com/ardagnir/conque-plus-plus)
 
 ##Installation
 Use pathogen.
