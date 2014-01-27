@@ -65,6 +65,8 @@ function! HackHack(commandName, ...)
   let g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint=0
 
   let g:S_allBuffers[g:S_HackDisplayBuffer].SearchMode=' '
+  let g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistory = []
+  let g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex = []
   let g:S_allBuffers[g:S_HackDisplayBuffer].fullBuffer=""
   let g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode=1
 
@@ -332,6 +334,7 @@ function! g:S_Search(mode)
   let g:S_allBuffers[g:S_HackDisplayBuffer].PromptChar=a:mode
   call g:S_ChangePrompt(g:S_allBuffers[g:S_HackDisplayBuffer].PromptChar)
   call feedkeys("a","n")
+  let g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex = 0
 endfunction
 
 function! g:S_GrabCommandLine()
@@ -345,12 +348,15 @@ function! g:S_GrabCommandLine()
 endfunction
 
 function! g:S_DoSearch_FromCL()
-  let g:S_allBuffers[g:S_HackDisplayBuffer].PromptChar=g:S_allBuffers[g:S_HackDisplayBuffer].NormalPromptChar
+  let g:S_allBuffers[g:S_HackDisplayBuffer].PromptChar = g:S_allBuffers[g:S_HackDisplayBuffer].NormalPromptChar
   "match ignores smartcase, so if smartcase is set and there are NO upper case
   "in search, we'll perform a case insenesitve search ourselves
-  let g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm=split(g:S_GrabCommandLine().'\n ','\n')[0]
-  call g:S_DoSearch(0)
-  let g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch=0
+  let g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm = substitute(g:S_GrabCommandLine(), "\n.*", "", "")
+  let g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch = 0
+  if g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm != ""
+    call g:S_DoSearch(0)
+    let g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistory += [g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm]
+  endif
 endfunction
 
 function! g:S_SmartMatch(expr, pat, start, count)
@@ -663,11 +669,29 @@ function! g:S_StoreTempBuffer()
   endif
 endfunction
 
+
+function! g:S_SearchHistoryUp()
+  if g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex < len(g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistory)
+    let g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex = g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex+1
+    call g:S_GrabFromSearchHistory()
+  endif
+endfunction
+
+function! g:S_SearchHistoryDown()
+  let g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex = g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex-1
+  if g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex < 0
+    let g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex = 0
+  else
+    call g:S_GrabFromSearchHistory()
+  endif
+endfunction
+
 function! g:S_HistoryUp()
+  if g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch
+    call g:S_SearchHistoryUp()
+    return
+  endif
   if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex<len(g:S_allBuffers[g:S_HackDisplayBuffer].History)
-    if g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch
-      return
-    endif
     call g:S_StoreTempBuffer()
     call g:S_RemoveArrow()
     let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex+1
@@ -678,6 +702,7 @@ endfunction
 
 function! g:S_HistoryDown()
   if g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch
+    call g:S_SearchHistoryDown()
     return
   endif 
   call g:S_StoreTempBuffer()
@@ -685,8 +710,9 @@ function! g:S_HistoryDown()
   let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex-1
   if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex<0
     let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=0
+  else
+    call g:S_GrabFromHistory()
   endif
-  call g:S_GrabFromHistory()
   call g:S_AddArrow()
 endfunction
 
@@ -734,6 +760,17 @@ function! g:S_AddArrow()
   "normal!0r>
   call g:S_AddArrowNoJump()
   call g:S_GotoHackPrompt()
+endfunction
+
+function! g:S_GrabFromSearchHistory()
+  if g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex == 0
+    normal! gg"_dG
+  else
+    let historyLine=g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistory[-g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex]
+    normal! gg"_dG
+    exec "normal!A".historyLine
+    normal! gg$
+  endif
 endfunction
 
 function! g:S_GrabFromHistory()
