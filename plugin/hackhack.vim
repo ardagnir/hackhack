@@ -655,7 +655,7 @@ function! g:S_StoreTempBuffer()
   if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex!=0
     let historyLine=g:S_allBuffers[g:S_HackDisplayBuffer].History[-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex]
   else
-    let historyLine=split(g:S_allBuffers[g:S_HackDisplayBuffer].TempBuffer."\n ","\n")[0]
+    let historyLine = substitute(g:S_allBuffers[g:S_HackDisplayBuffer].TempBuffer, "\n.*", "", "")
   endif
   let commandLine=g:S_GrabCommandLine()
   if historyLine."\n"!=commandLine && historyLine." \n"!=commandLine
