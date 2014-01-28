@@ -148,7 +148,6 @@ function! HackHack(commandName, ...)
     autocmd! CursorMovedI 
   augroup END
   augroup HackHack
-    "autocmd  VimResized <buffer> exec "normal!\<C-W>100+"
     autocmd  CursorHold <buffer> call g:S_UpdateTerminal(0, 0)
     autocmd  CursorHoldI <buffer> call g:S_UpdateTerminal(1, 0)
   augroup END
@@ -172,21 +171,14 @@ function! HackHack(commandName, ...)
   setlocal noswapfile
   setlocal bufhidden=hide
   setlocal buftype=nofile
-  "exec "normal! i>  "
-  "nnoremap <buffer> s <C-W>k
   inoremap <silent> <buffer> <CR> <C-O>:call g:S_CarriageReturn(1)<CR>
   nnoremap <silent> <buffer> <CR> :call g:S_CarriageReturn(0)<CR>
   augroup HackHack
     autocmd CursorHoldI  <buffer> call g:S_UpdateTerminal(1, 1)
     autocmd CursorHold   <buffer> call g:S_UpdateTerminal(0, 1)
-    "autocmd VimResized   <buffer> exec "normal!\<C-W>100-"
-    "autocmd InsertEnter  <buffer> call g:S_FixPrompt(1)
-    "autocmd CursorMovedI <buffer> call g:S_FixPrompt(1)
-    "autocmd CursorMoved  <buffer> call g:S_FixPrompt(0)
     autocmd CursorHold   *        call g:S_UpdateCurrentWindow()
     autocmd CursorHoldI  *        call g:S_UpdateCurrentWindow()
     autocmd BufEnter     *        call g:S_BufferSwitch()
-    "autocmd InsertEnter  *        call g:S_ClearUnfocusedEntries()
   augroup END
   inoremap <silent> <buffer> <UP> <C-O>:call g:S_HistoryUp()<CR>
   inoremap <silent> <buffer> <DOWN> <C-O>:call g:S_HistoryDown()<CR>
@@ -222,16 +214,12 @@ function! HackHack(commandName, ...)
   call g:S_MapRegisters()
 
   call g:S_GotoHackDisplay()
-  "syntax match garbage /_237.*_237/ conceal
   call g:S_ExtendLines()
   call g:S_ReadAndUpdatePromptChar(200)
-  "normal!0i>
   call g:S_GotoHackPrompt()
   normal!dd
 endfunction
-"eventully i should name my terminals and input windows
-"and loop through each input window updating it's terminal
-"
+
 function! g:S_BufferSwitch()
   let switchTo = winbufnr(winnr())
   if switchTo!=g:S_CurrentBuffer || g:S_WindowSwitched
@@ -274,7 +262,6 @@ endfunction
 
 function! g:S_GotoTempBuffer()
   if g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex>=0
-    "call g:S_StoreTempBuffer()
     call g:S_RemoveArrow()
     let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex
     call g:S_GrabFromHistory()
@@ -394,15 +381,14 @@ function! g:S_DoSearch(reversed)
 endfunction
 
 let g:lastPathString=""
+"eventully i should loop through all hhbuffers here
+"
 function! g:S_ReadAndUpdatePromptChar(howLong)
     " Don't do all this work if there's nothing to be read.
     if conque_term#get_instance().peak() == 0
       return
     endif
     let startingInReadline=g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode
-    "if g:lastPathString!="" 
-      "exec "normal!".g:lastPathLine."gg0i_237".g:lastPathString."_237"
-    "endif
     
     if g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode==1
       call g:S_UnDashify()
@@ -422,22 +408,6 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
     else
       call g:S_ExtendLines()
     endif
-    "if g:lastPathString!="" 
-      "exec "normal!".g:lastPathLine."gg0d".(len(g:lastPathString)+8)."l"
-    "endif
-    "silent! exec "normal!gg/^_237\<CR>"
-    "while getpos('.')[1]>1
-      "let g:lastPathLine=getpos('.')[1]
-      "exec "normal!d4ld/_237\<CR>"
-      "normal!"_d4l
-      "call g:S_GotoHackPrompt()
-      "exec "lcd ".@"
-      "let g:lastPathString=@"
-      ""make sure to save register!!!
-      "call g:S_GotoHackDisplay()
-      "silent! exec "normal!gg/^_237\<CR>"
-    "endwhile
-    "normal!G
     let possiblePromptIndex=len(readInput)-1
     let findSavePoint=split(readInput,'[?1049h')
     if len(readInput)>0
@@ -446,10 +416,6 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
     if len(findSavePoint)>1
       let g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode=0
     endif
-    "let findSavePoint=split(readInput." ",'1049l')
-    "if len(findSavePoint)>1
-      "let g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode=1
-    "endif
     if len(findSavePoint)>0 && len(split(findSavePoint[-1],'[?1049l'))>1
       let g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode=1
     endif
@@ -501,7 +467,6 @@ endfunction
 function! g:S_ShowPrompt()
   call g:S_UnmapDirectInputKeys()
   call g:S_SetBrowseMappings()
-  "RESTORE OLD BUFFER
   let g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode=1
   call g:S_DashStatusLine()
   call g:S_RestoreMarks()
@@ -537,16 +502,7 @@ function! g:S_UpdateTerminal(insert_mode, hackPrompt)
       call g:S_RemoveArrowNoJump()
       let g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint=getpos('.')[1]
       call g:S_AddArrowNoJump()
-    "elseif g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode==0
-      "call g:S_JumpToLastLine()
     endif
-    "if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex==0 
-      "normal!0i>
-    "elseif g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex==0
-      "exec "normal!I".g:S_allBuffers[g:S_HackDisplayBuffer].BufferMarker
-    "else
-      "exec "normal!I "
-    "endif
     if g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode==1
       call g:S_GotoArrowLine()
     endif
@@ -594,21 +550,16 @@ function! g:S_SendLine(line)
   let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine=g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine+[g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint]
   let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=0
   call conque_term#get_instance().write(a:line)
-  "normal!0"_x
   call g:S_RemoveArrowNoJump()
   call g:S_ReadAndUpdatePromptChar(80)
-  "call g:S_ExtendLines()
-  "exec "normal!".g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint."ggI "
   call g:S_JumpToLastLine()
   let g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint=getpos('.')[1]
   if g:S_allBuffers[g:S_HackDisplayBuffer].ReadlineMode==1
     call g:S_AddArrowNoJump()
   endif
-  "exec "normal!G0i>\<ESC>$"
   silent call g:S_GotoHackPrompt()
 endfunction
 
-"breaks register
 function! g:S_CarriageReturn(insertMode)
   "prevent carriage return spam
   while getchar(1)==13 "carriage return
@@ -621,13 +572,6 @@ function! g:S_CarriageReturn(insertMode)
     call g:S_ChangePrompt(g:S_allBuffers[g:S_HackDisplayBuffer].PromptChar)
     return
   endif
-  "silent call g:S_GotoHackDisplay()
-  "let tempReg=getreg('"', 1)
-  "let regType=getregtype('"')
-  "silent normal!ggyG
-  "let g:S_allBuffers[g:S_HackDisplayBuffer].fullBuffer=@"
-  "call setreg('"',tempReg,regType)
-  "silent call g:S_GotoHackPrompt()
   call g:S_EraseOldBufferMarker()
   let g:S_allBuffers[g:S_HackDisplayBuffer].TempBuffer=""
   let g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex=-1
@@ -637,16 +581,6 @@ function! g:S_CarriageReturn(insertMode)
 endfunction
 
 function! g:S_EraseOldBufferMarker()
-  "if g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex>=0
-    "call g:S_GotoHackDisplay()
-    "if g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex==0
-      "exec "normal!".g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint."gg"
-    "else
-      "exec "normal!".g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine[-g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex]."gg"
-    "endif
-    "exec "normal!0r "
-    "call g:S_GotoHackPrompt()
-  "endif
   sign unplace 4
 endfunction
 
@@ -756,8 +690,6 @@ endfunction
 
 function! g:S_AddArrow()
   call g:S_GotoHackDisplay()
-  "call g:S_GotoArrowLine()
-  "normal!0r>
   call g:S_AddArrowNoJump()
   call g:S_GotoHackPrompt()
 endfunction
@@ -935,7 +867,6 @@ endfunction
 function! g:S_GotoMark()
   let char=nr2char(getchar())
   call g:S_GotoHackDisplay()
-    "echo getpos("'a")
     silent! exec "normal!'".char
     call g:S_HistoryFromCursorPos()
   call g:S_GotoHackPrompt()
@@ -1040,13 +971,6 @@ function! g:S_RestoreMark(mark)
     silent! exec "sign place ".char2nr(a:mark)." line=".cursorline." name=".a:mark." buffer=".g:S_HackDisplayBuffer
   endif
 endfunction
-
-"function! g:S_CurrentHackBuffer()
-"  if g:S_ReadlineMode==1
-"    return g:S_HackDisplayBuffer
-"  else
-"    return bufnr(expand("%"))
-"endfunction
 
 let &cpo = g:S_save_cpo
 unlet g:S_save_cpo
