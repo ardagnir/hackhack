@@ -603,6 +603,7 @@ endfunction
 
 function! g:S_CarriageReturn(insertMode)
   "prevent carriage return spam
+  let g:S_allBuffers[g:S_HackDisplayBuffer].FirstTab = ""
   while getchar(1)==13 "carriage return
     call getchar(0)
   endwhile
