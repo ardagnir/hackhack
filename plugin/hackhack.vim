@@ -57,6 +57,7 @@ function! HackHack(commandName, ...)
   let g:S_allBuffers[g:S_HackDisplayBuffer].mode="normal"
   let g:S_allBuffers[g:S_HackDisplayBuffer].PotentialPromptChar='$'
   let g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm=""
+  let g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm=""
   let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=0
 
   let g:S_allBuffers[g:S_HackDisplayBuffer].FirstTab = ""
@@ -83,6 +84,7 @@ function! HackHack(commandName, ...)
   hi HHBorder ctermfg=DarkBlue cterm=bold guifg=darkgrey
   hi HHPrompt ctermfg=DarkCyan  guifg=darkgrey
   sign define doublearrow text=>> texthl=HHPrompt
+  sign define searcharrow text=>> texthl=HHBorder
   sign define dot text=. texthl=HHPrompt
   sign define a text=a texthl=HHPrompt
   sign define b text=b texthl=HHPrompt
@@ -326,21 +328,23 @@ function! g:S_Search(mode)
   let g:S_allBuffers[g:S_HackDisplayBuffer].SearchHistoryIndex = 0
 endfunction
 
-function! g:S_GrabCommandLine()
-  let tempReg=getreg('"', 1)
-  let regType=getregtype('"')
-  let @"="\n"
-  normal!dd
-  let ret=@"
-  call setreg('"',tempReg,regType)
-  return ret
+function! g:S_GrabCommandLine(delete)
+  let line = getline(1)
+  if a:delete
+    normal!"_dd
+  endif
+  return line
 endfunction
 
 function! g:S_DoSearch_FromCL()
+  call g:S_GotoHackDisplay()
+  match
+  call g:S_GotoHackPrompt()
+  call g:S_RemoveSearchArrow()
   let g:S_allBuffers[g:S_HackDisplayBuffer].PromptChar = g:S_allBuffers[g:S_HackDisplayBuffer].NormalPromptChar
   "match ignores smartcase, so if smartcase is set and there are NO upper case
   "in search, we'll perform a case insenesitve search ourselves
-  let g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm = substitute(g:S_GrabCommandLine(), "\n.*", "", "")
+  let g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm = g:S_GrabCommandLine(1)
   let g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch = 0
   if g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm != ""
     call g:S_DoSearch(0)
@@ -356,25 +360,58 @@ function! g:S_SmartMatch(expr, pat, start, count)
   return match(a:expr, addCase.a:pat, a:start, a:count)
 endfunction
 
-function! g:S_DoSearch(reversed)
+function! g:S_GetSearchLoc(reversed, incremental)
   let downward = ( g:S_allBuffers[g:S_HackDisplayBuffer].SearchMode=="/" && !a:reversed || g:S_allBuffers[g:S_HackDisplayBuffer].SearchMode=="?" && a:reversed)
   let reverseHistoryIndex=len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex
-  let caseMagic=0
   let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=0
   let searchLocation=-2
+  if a:incremental
+    let searchTerm = g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm
+  else
+    let searchTerm = g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm
+  endif
   while searchLocation<reverseHistoryIndex && searchLocation!=-1
     let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount+1
-    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
+    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
   endwhile
   if downward && searchLocation==reverseHistoryIndex
     let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount+1
-    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
+    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
   elseif !downward
     let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount-1
-    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
+    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
+  endif
+  return searchLocation
+endfunction
+
+function! g:S_DoIncrementalSearch()
+  let temp = g:S_GrabCommandLine(0)
+  "Only proceed if search term changed
+  if g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm  == temp
+    return
   endif
 
-  if searchLocation>=0
+  let g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm = temp
+
+  if g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm != ""
+    let searchLocation = g:S_GetSearchLoc(0, 1)
+  endif
+
+  call g:S_GotoHackDisplay()
+  match
+  call g:S_RemoveSearchArrow()
+
+  if g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm != "" && searchLocation > 0
+    let linenumber = g:S_ConvertHistoryToLineNumber(len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-searchLocation)
+    call g:S_AddSearchArrow(linenumber)
+    exec 'match Search /\%'.linenumber.'l.*\zs'.g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm.'/'
+  endif
+  call g:S_GotoHackPrompt()
+endfunction
+
+function! g:S_DoSearch(reversed)
+  let searchLocation = g:S_GetSearchLoc(a:reversed, 0)
+  if searchLocation > 0
     call g:S_RemoveArrow()
     let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-searchLocation
     call g:S_GrabFromHistory()
@@ -495,6 +532,10 @@ function! g:S_UpdateTerminal(insert_mode, hackPrompt)
       return
     endif
 
+    if(a:insert_mode && a:hackPrompt && &incsearch && g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch)
+      call g:S_DoIncrementalSearch()
+    endif
+
     let hackPrompt=a:hackPrompt
     let insert_mode=a:insert_mode
     if g:S_allBuffers[g:S_HackDisplayBuffer].HackMode == 'browse'
@@ -510,9 +551,9 @@ function! g:S_UpdateTerminal(insert_mode, hackPrompt)
     endif
     if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex == 0 && g:S_allBuffers[g:S_HackDisplayBuffer].HackMode == 'readline'
       call g:S_JumpToLastLine()
-      call g:S_RemoveArrowNoJump()
+      call g:S_RemoveArrow()
       let g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint = getpos('.')[1]
-      call g:S_AddArrowNoJump()
+      call g:S_AddArrow()
     endif
     if g:S_allBuffers[g:S_HackDisplayBuffer].HackMode == 'readline'
       call g:S_GotoArrowLine()
@@ -591,12 +632,12 @@ function! g:S_SendLine(line)
   let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine=g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine+[g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint]
   let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=0
   call conque_term#get_instance().write(a:line)
-  call g:S_RemoveArrowNoJump()
+  call g:S_RemoveArrow()
   call g:S_ReadAndUpdatePromptChar(80)
   call g:S_JumpToLastLine()
   let g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint=getpos('.')[1]
   if g:S_allBuffers[g:S_HackDisplayBuffer].HackMode=='readline'
-    call g:S_AddArrowNoJump()
+    call g:S_AddArrow()
   endif
   silent call g:S_GotoHackPrompt()
 endfunction
@@ -617,8 +658,8 @@ function! g:S_CarriageReturn(insertMode)
   call g:S_EraseOldBufferMarker()
   let g:S_allBuffers[g:S_HackDisplayBuffer].TempBuffer=""
   let g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex=-1
-  let capturedKeys=g:S_GrabCommandLine()
-  call g:S_SendLine(capturedKeys)
+  let capturedKeys=g:S_GrabCommandLine(1)
+  call g:S_SendLine(capturedKeys."\n")
   call g:S_RestartUpdateCounter(a:insertMode)
 endfunction
 
@@ -633,12 +674,11 @@ function! g:S_StoreTempBuffer()
   else
     let historyLine = substitute(g:S_allBuffers[g:S_HackDisplayBuffer].TempBuffer, "\n.*", "", "")
   endif
-  "Note: Grab CommandLine has a trailling \n
-  let commandLine=g:S_GrabCommandLine()
-  if historyLine."\n"!=commandLine && historyLine." \n"!=commandLine
+  let commandLine=g:S_GrabCommandLine(1)
+  if historyLine!=commandLine && historyLine." "!=commandLine
     call g:S_EraseOldBufferMarker()
-    let g:S_allBuffers[g:S_HackDisplayBuffer].TempBuffer = commandLine[0:-2]
-    if commandLine!="\n" && commandLine!=" \n"
+    let g:S_allBuffers[g:S_HackDisplayBuffer].TempBuffer = commandLine
+    if commandLine!="" && commandLine!=" "
       let g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex=g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex
     else
       let g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex=-1
@@ -694,22 +734,26 @@ function! g:S_HistoryDown()
 endfunction
 
 function! g:S_GotoArrowLine()
-  if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex==0
-    exec "normal!".g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint."gg"
-  else
-    exec "normal!".g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine[-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex]."gg"
-  endif
+  exec "normal!".g:S_GetArrowLine()."gg"
 endfunction
 
 function! g:S_GetArrowLine()
-  if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex==0
+  return g:S_ConvertHistoryToLineNumber(g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex)
+endfunction
+
+function g:S_ConvertHistoryToLineNumber(history)
+  if a:history==0
     return g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint
   else
-    return g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine[-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex]
+    return g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine[-a:history]
   endif
 endfunction
 
-function! g:S_RemoveArrowNoJump()
+function! g:S_RemoveSearchArrow()
+  exec "sign unplace ".5
+endfunction
+
+function! g:S_RemoveArrow()
   let lineNum=g:S_GetArrowLine()
   if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex==g:S_allBuffers[g:S_HackDisplayBuffer].TempBufferIndex
     exec "sign place 4 line=".lineNum." name=dot buffer=".g:S_HackDisplayBuffer
@@ -719,22 +763,17 @@ function! g:S_RemoveArrowNoJump()
   exec "sign unplace ".2
 endfunction
 
-"Delete this
-function! g:S_RemoveArrow()
-  call g:S_RemoveArrowNoJump()
-endfunction
-
-function! g:S_AddArrowNoJump()
-  let lineNum=g:S_GetArrowLine()
-  exec "normal!".lineNum."gg"
-  exec "sign place 2 line=".lineNum." name=doublearrow buffer=".g:S_HackDisplayBuffer
+function! g:S_AddSearchArrow(lineNum)
+  exec "normal!".a:lineNum."gg"
+  exec "sign place 5 line=".a:lineNum." name=searcharrow buffer=".g:S_HackDisplayBuffer
   sign unplace 1
 endfunction
 
 function! g:S_AddArrow()
-  call g:S_GotoHackDisplay()
-  call g:S_AddArrowNoJump()
-  call g:S_GotoHackPrompt()
+  let lineNum=g:S_GetArrowLine()
+  exec "normal!".lineNum."gg"
+  exec "sign place 2 line=".lineNum." name=doublearrow buffer=".g:S_HackDisplayBuffer
+  sign unplace 1
 endfunction
 
 function! g:S_GrabFromSearchHistory()
@@ -856,7 +895,7 @@ function! g:S_HistoryFromCursorPos()
   call g:S_GotoHackPrompt()
   call g:S_StoreTempBuffer()
   call g:S_GotoHackDisplay()
-  call g:S_RemoveArrowNoJump()
+  call g:S_RemoveArrow()
   if cursorline==g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint
     let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex = 0
   else
@@ -868,7 +907,7 @@ function! g:S_HistoryFromCursorPos()
   call g:S_GotoHackPrompt()
   call g:S_GrabFromHistory()
   call g:S_GotoHackDisplay()
-  call g:S_AddArrowNoJump()
+  call g:S_AddArrow()
 endfunction
 
 function! g:S_MapTabKeys()
