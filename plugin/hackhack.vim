@@ -420,6 +420,10 @@ function! g:S_DoIncrementalSearch(ampersearch)
 
   let g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm = temp
 
+  "We have to change ampertest or the search doesn't always get redone if you
+  "add a letter than delete it from a history line
+  let g:S_allBuffers[g:S_HackDisplayBuffer].AmperTest = temp
+
   if !a:ampersearch
     if g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm != ""
       let searchLocation = g:S_GetSearchLoc(0, 1)
