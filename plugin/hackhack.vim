@@ -451,6 +451,7 @@ function! g:S_DoIncrementalSearch(ampersearch)
       call g:S_GotoHackDisplay()
       normal!zE
       call g:S_GotoHackPrompt()
+      let g:S_allBuffers[g:S_HackDisplayBuffer].searchList = []
       return
     endif
     let g:S_allBuffers[g:S_HackDisplayBuffer].searchList = g:S_GetSearchList(1)
@@ -848,6 +849,10 @@ function! g:S_HistoryUp()
     let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex+1
     call g:S_GrabFromHistory()
     call g:S_AddArrow()
+    if g:S_Amperstyle
+      let temp = g:S_GrabCommandLine(0)
+      let g:S_allBuffers[g:S_HackDisplayBuffer].AmperTest = temp
+    endif
   endif
 endfunction
 
@@ -869,6 +874,10 @@ function! g:S_HistoryDown()
     call g:S_GrabFromHistory()
   endif
   call g:S_AddArrow()
+  if g:S_Amperstyle
+    let temp = g:S_GrabCommandLine(0)
+    let g:S_allBuffers[g:S_HackDisplayBuffer].AmperTest = temp
+  endif
 endfunction
 
 function! g:S_GotoArrowLine()
