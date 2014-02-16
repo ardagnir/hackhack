@@ -157,8 +157,9 @@ function! HackHack(commandName, ...)
     autocmd! CursorMovedI 
   augroup END
   augroup HackHack
-    autocmd  CursorHold <buffer> call g:S_UpdateTerminal(0, 0)
-    autocmd  CursorHoldI <buffer> call g:S_UpdateTerminal(1, 0)
+    autocmd CursorHold  <buffer> call g:S_UpdateTerminal(0, 0)
+    autocmd CursorHoldI <buffer> call g:S_UpdateTerminal(1, 0)
+    autocmd VimResized  <buffer> call g:S_HandleResize(0)
   augroup END
   if bufexists(g:S_allBuffers[g:S_HackDisplayBuffer].windowName)
     let counter = 0
@@ -183,6 +184,7 @@ function! HackHack(commandName, ...)
   inoremap <silent> <buffer> <CR> <C-O>:call g:S_CarriageReturn(1)<CR>
   nnoremap <silent> <buffer> <CR> :call g:S_CarriageReturn(0)<CR>
   augroup HackHack
+    autocmd VimResized   <buffer> call g:S_HandleResize(1)
     autocmd CursorHoldI  <buffer> call g:S_UpdateTerminal(1, 1)
     autocmd CursorHold   <buffer> call g:S_UpdateTerminal(0, 1)
     autocmd CursorHold   *        call g:S_UpdateCurrentWindow()
@@ -970,18 +972,29 @@ function! g:S_ExtendLines()
   let topLine=getpos('.')[1]
   normal! L
   let numLines=getpos('.')[1]-topLine+1
-  if numLines<winheight(winnr())
-    exec "normal!".(winheight(winnr())-numLines)."o\<ESC>"
+  let winheight = winheight(winnr())
+  if numLines<winheight
+    exec "normal!".(winheight(winnr())-numLines)."o\<ESC>G"
   endif
+    call g:S_JumpToLastLine()
+    let topLine=getpos('.')[1]
+    normal!G
+    let numLines=getpos('.')[1]-topLine+1
+    if numLines>winheight
+      if numLines>winheight+1
+        exec "normal!d".(numLines-winheight-1)."k"
+      else
+        exec "normal!dd"
+      endif
+    endif
   return
 endfunction
 
 function! g:S_JumpToLastLine()
   normal!G$
-  while getpos('.')[2]==1
+  while getpos('.')[2]==1 && getpos('.')[1]>1
     normal!k$
   endwhile
-  normal!zb
 endfunction
 
 function! g:S_ChangePrompt(promptChar)
@@ -1124,6 +1137,22 @@ function! g:S_RestoreMark(mark)
   let cursorline = getpos("'".a:mark)[1]
   if cursorline>0
     silent! exec "sign place ".char2nr(a:mark)." line=".cursorline." name=".a:mark." buffer=".g:S_HackDisplayBuffer
+  endif
+endfunction
+
+function! g:S_HandleResize(hackPrompt)
+  if g:S_allBuffers[g:S_HackDisplayBuffer].HackMode!='readline'
+    return
+  endif
+  if a:hackPrompt
+    call g:S_GotoHackDisplay()
+  endif
+  call g:S_UnDashify()
+  normal!G
+  call g:S_ExtendLines()
+  call g:S_Dashify()
+  if a:hackPrompt
+    call g:S_GotoHackPrompt()
   endif
 endfunction
 
