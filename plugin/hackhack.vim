@@ -368,6 +368,12 @@ function! g:S_SmartMatch(expr, pat, start, count)
   return match(a:expr, addCase.a:pat, a:start, a:count)
 endfunction
 
+function! g:S_LiteralMatch(expr, pat, start, count)
+  "\V is very not magic. This means we just have to escape out \'s
+  let search = '\V'.substitute(a:pat, '\\','\\\\','g')
+  return match(a:expr, search, a:start, a:count)
+endfunction
+
 function! g:S_GetSearchLoc(reversed, incremental)
   let downward = ( g:S_allBuffers[g:S_HackDisplayBuffer].SearchMode=="/" && !a:reversed || g:S_allBuffers[g:S_HackDisplayBuffer].SearchMode=="?" && a:reversed)
   let reverseHistoryIndex=len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex
@@ -403,7 +409,7 @@ function! g:S_GetSearchList(incremental)
   let matchCount = 0
   while searchLocation!=-1
     let matchCount = matchCount + 1
-    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, matchCount)
+    let searchLocation = g:S_LiteralMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, matchCount)
     if searchLocation!=-1
       let resultList += [searchLocation]
     endif
@@ -753,6 +759,13 @@ function! g:S_ToggleAmperstyle()
   call g:S_ChangePrompt(g:S_allBuffers[g:S_HackDisplayBuffer].PromptChar)
   if g:S_Amperstyle
     let g:S_allBuffers[g:S_HackDisplayBuffer].searchList = []
+    let g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm = ""
+    let g:S_allBuffers[g:S_HackDisplayBuffer].AmperTest = ""
+    call g:S_DoIncrementalSearch(1)
+  else
+    call g:S_GotoHackDisplay()
+    normal!zE
+    call g:S_GotoHackPrompt()
   endif
 endfunction
 
