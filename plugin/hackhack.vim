@@ -468,6 +468,8 @@ function! g:S_DoIncrementalSearch(ampersearch)
     if g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint>lastSpot
       exec (lastSpot+1).",".(g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint-1)."fold"
     endif
+    call g:S_JumpToLastLine()
+    normal!zb
     call g:S_GotoHackPrompt()
   endif
 endfunction
@@ -1021,6 +1023,9 @@ function! g:S_JumpToLastLine()
   while getpos('.')[2]==1 && getpos('.')[1]>1
     normal!k$
   endwhile
+  if g:S_Amperstyle && g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm!=""
+    normal!zb
+  endif
 endfunction
 
 function! g:S_ChangePrompt(promptChar)
