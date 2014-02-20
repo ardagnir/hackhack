@@ -281,26 +281,34 @@ function! g:S_GotoTempBuffer()
   endif
 endfunction
 
+function! g:S_GotoHistoryIndex(newIndex)
+  call g:S_StoreTempBuffer()
+  call g:S_RemoveArrow()
+  let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=a:newIndex
+  call g:S_GrabFromHistory()
+  call g:S_AddArrow()
+  if g:S_Amperstyle
+    let temp = g:S_GrabCommandLine(0)
+    let g:S_allBuffers[g:S_HackDisplayBuffer].AmperTest = temp
+  endif
+endfunction
+
 function! g:S_GotoHistoryBeginning()
   if g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch
     return
   endif
-  call g:S_StoreTempBuffer()
-  call g:S_RemoveArrow()
-  let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=len(g:S_allBuffers[g:S_HackDisplayBuffer].History)
-  call g:S_GrabFromHistory()
-  call g:S_AddArrow()
+  if g:S_Amperstyle
+    call g:S_GotoHistoryIndex(len(g:S_allBuffers[g:S_HackDisplayBuffer].History) - g:S_allBuffers[g:S_HackDisplayBuffer].searchList[0])
+  else
+    call g:S_GotoHistoryIndex(len(g:S_allBuffers[g:S_HackDisplayBuffer].History))
+  endif
 endfunction
 
 function! g:S_GotoHistoryEnd()
   if g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch
     return
   endif
-  call g:S_StoreTempBuffer()
-  call g:S_RemoveArrow()
-  let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=0
-  call g:S_GrabFromHistory()
-  call g:S_AddArrow()
+  call g:S_GotoHistoryIndex(0)
 endfunction
 
 function! g:S_NextSearch(direction)
@@ -315,11 +323,7 @@ function! g:S_NextSearch(direction)
   let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount+direction
   let g:searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History,g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm,0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
   if g:searchLocation>=0 && g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount>0
-    call g:S_StoreTempBuffer()
-    call g:S_RemoveArrow()
-    let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-g:searchLocation
-    call g:S_GrabFromHistory()
-    call g:S_AddArrow()
+    call g:S_GotoHistoryIndex(len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-g:searchLocation)
   else
     let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount-direction
   endif
@@ -477,10 +481,7 @@ endfunction
 function! g:S_DoSearch(reversed)
   let searchLocation = g:S_GetSearchLoc(a:reversed, 0)
   if searchLocation > 0
-    call g:S_RemoveArrow()
-    let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-searchLocation
-    call g:S_GrabFromHistory()
-    call g:S_AddArrow()
+    call g:S_GotoHistoryIndex(len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-searchLocation)
   endif
 endfunction
 
@@ -602,7 +603,7 @@ function! g:S_UpdateTerminal(insert_mode, hackPrompt)
 
     if(a:insert_mode && a:hackPrompt && &incsearch && g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch)
       call g:S_DoIncrementalSearch(0)
-    elseif g:S_Amperstyle
+    elseif g:S_Amperstyle && !g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch
       call g:S_DoIncrementalSearch(1)
     endif
 
@@ -791,18 +792,13 @@ endfunction
 function! g:S_AmperstyleUp()
   let amperIndex =  index(g:S_allBuffers[g:S_HackDisplayBuffer].searchList, len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex)
   if amperIndex != 0
-    call g:S_StoreTempBuffer()
-    call g:S_RemoveArrow()
     "-1 will handle the zeropoint default index which doesn't whow up in the searchList
     "Keeping this -1 will go to the bottom of search list which is what we want
     if amperIndex != -1
       let amperIndex -= 1
     endif
-    let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex = len(g:S_allBuffers[g:S_HackDisplayBuffer].History) - g:S_allBuffers[g:S_HackDisplayBuffer].searchList[amperIndex]
-    call g:S_GrabFromHistory()
-    call g:S_AddArrow()
+    call g:S_GotoHistoryIndex(len(g:S_allBuffers[g:S_HackDisplayBuffer].History) - g:S_allBuffers[g:S_HackDisplayBuffer].searchList[amperIndex])
     let temp = g:S_GrabCommandLine(0)
-    let g:S_allBuffers[g:S_HackDisplayBuffer].AmperTest = temp
     if temp == g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm
       match
     else
@@ -813,26 +809,18 @@ endfunction
 
 function! g:S_AmperstyleDown()
   let g:amperIndex =  index(g:S_allBuffers[g:S_HackDisplayBuffer].searchList, len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex)
-  if g:amperIndex != -1
-    call g:S_StoreTempBuffer()
-    call g:S_RemoveArrow()
-    "-1 will handle the zeropoint default index which doesn't whow up in the searchList
-    "Keeping this -1 will go to the bottom of search list which is what we want
-    if g:amperIndex < len(g:S_allBuffers[g:S_HackDisplayBuffer].searchList) - 1
-      let g:amperIndex += 1
-      let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex = len(g:S_allBuffers[g:S_HackDisplayBuffer].History) - g:S_allBuffers[g:S_HackDisplayBuffer].searchList[g:amperIndex]
-    else
-      let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex = 0
-    endif
-    call g:S_GrabFromHistory()
-    call g:S_AddArrow()
-    let temp = g:S_GrabCommandLine(0)
-    let g:S_allBuffers[g:S_HackDisplayBuffer].AmperTest = temp
-    if temp == g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm
-      match
-    else
-      exec 'match Search /^.\{-}\zs'.g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm.'/'
-    endif
+  if g:amperIndex < len(g:S_allBuffers[g:S_HackDisplayBuffer].searchList) - 1 && g:amperIndex != -1
+    let g:amperIndex +=1
+    call g:S_GotoHistoryIndex(len(g:S_allBuffers[g:S_HackDisplayBuffer].History) - g:S_allBuffers[g:S_HackDisplayBuffer].searchList[g:amperIndex])
+  else
+    call g:S_GotoHistoryIndex(0)
+  endif
+
+  let temp = g:S_GrabCommandLine(0)
+  if temp == g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm
+    match
+  else
+    exec 'match Search /^.\{-}\zs'.g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm.'/'
   endif
 endfunction
 
@@ -845,16 +833,8 @@ function! g:S_HistoryUp()
     call g:S_AmperstyleUp()
     return
   endif
-  if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex<len(g:S_allBuffers[g:S_HackDisplayBuffer].History)
-    call g:S_StoreTempBuffer()
-    call g:S_RemoveArrow()
-    let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex+1
-    call g:S_GrabFromHistory()
-    call g:S_AddArrow()
-    if g:S_Amperstyle
-      let temp = g:S_GrabCommandLine(0)
-      let g:S_allBuffers[g:S_HackDisplayBuffer].AmperTest = temp
-    endif
+  if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex < len(g:S_allBuffers[g:S_HackDisplayBuffer].History)
+     call g:S_GotoHistoryIndex(g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex + 1)
   endif
 endfunction
 
@@ -867,18 +847,8 @@ function! g:S_HistoryDown()
     call g:S_AmperstyleDown()
     return
   endif
-  call g:S_StoreTempBuffer()
-  call g:S_RemoveArrow()
-  let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex-1
-  if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex<0
-    let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=0
-  else
-    call g:S_GrabFromHistory()
-  endif
-  call g:S_AddArrow()
-  if g:S_Amperstyle
-    let temp = g:S_GrabCommandLine(0)
-    let g:S_allBuffers[g:S_HackDisplayBuffer].AmperTest = temp
+  if g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex > 0
+     call g:S_GotoHistoryIndex(g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex - 1)
   endif
 endfunction
 
@@ -1030,7 +1000,9 @@ endfunction
 
 function! g:S_ChangePrompt(promptChar)
   sign unplace 3
-  if g:S_Amperstyle
+  if g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch
+    exec "sign define prompt text=".a:promptChar." texthl=Conditional"
+  elseif g:S_Amperstyle
     exec "sign define prompt text=& texthl=WarningMsg"
   else
     exec "sign define prompt text=".a:promptChar." texthl=HHPrompt"
@@ -1060,21 +1032,16 @@ endfunction
 function! g:S_HistoryFromCursorPos()
   let cursorline = getpos('.')[1]
   call g:S_GotoHackPrompt()
-  call g:S_StoreTempBuffer()
-  call g:S_GotoHackDisplay()
-  call g:S_RemoveArrow()
   if cursorline==g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint
-    let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex = 0
+    let history = 0
   else
-    let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex = 1
-    while g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine[-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex]>cursorline && g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex<len(g:S_allBuffers[g:S_HackDisplayBuffer].History)
-      let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex+=1
+    let history= 1
+    while g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine[history]>cursorline && history<len(g:S_allBuffers[g:S_HackDisplayBuffer].History)
+      let history+=1
     endwhile
   endif
-  call g:S_GotoHackPrompt()
-  call g:S_GrabFromHistory()
+  call g:S_GotoHistoryIndex(history)
   call g:S_GotoHackDisplay()
-  call g:S_AddArrow()
 endfunction
 
 function! g:S_MapTabKeys()
