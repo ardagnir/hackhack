@@ -368,7 +368,7 @@ endfunction
 
 function! g:S_SmartMatch(expr, pat, start, count)
   let addCase=''
-  if &smartcase && match(a:pat, '\C[A-Z]')!=-1
+  if g:S_IsSmartcaseSet() && match(a:pat, '\C[A-Z]')!=-1
     let addCase='\C'
   endif
   return match(a:expr, addCase.a:pat, a:start, a:count)
@@ -603,7 +603,7 @@ function! g:S_UpdateTerminal(insert_mode, hackPrompt)
       return
     endif
 
-    if(a:insert_mode && a:hackPrompt && &incsearch && g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch)
+    if(a:insert_mode && a:hackPrompt && g:S_IsIncsearchSet() && g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch)
       call g:S_DoIncrementalSearch(0)
     elseif g:S_Amperstyle && !g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch
       call g:S_DoIncrementalSearch(1)
@@ -1156,6 +1156,22 @@ function! g:S_HandleResize(hackPrompt)
   call g:S_Dashify()
   if a:hackPrompt
     call g:S_GotoHackPrompt()
+  endif
+endfunction
+
+function! g:S_IsSmartcaseSet()
+  if exists("g:HackHack_smartcase")
+    return g:HackHack_smartcase
+  else
+    return &smartcase
+  endif
+endfunction
+
+function! g:S_IsIncsearchSet()
+  if exists("g:HackHack_incsearch")
+    return g:HackHack_incsearch
+  else
+    return &incsearch
   endif
 endfunction
 
