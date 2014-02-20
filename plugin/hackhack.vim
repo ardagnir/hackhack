@@ -297,8 +297,10 @@ function! g:S_GotoHistoryBeginning()
   if g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch
     return
   endif
-  if g:S_Amperstyle
-    call g:S_GotoHistoryIndex(len(g:S_allBuffers[g:S_HackDisplayBuffer].History) - g:S_allBuffers[g:S_HackDisplayBuffer].searchList[0])
+  if g:S_Amperstyle && g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm!=""
+    if(len(g:S_allBuffers[g:S_HackDisplayBuffer].searchList)>0)
+      call g:S_GotoHistoryIndex(len(g:S_allBuffers[g:S_HackDisplayBuffer].History) - g:S_allBuffers[g:S_HackDisplayBuffer].searchList[0])
+    endif
   else
     call g:S_GotoHistoryIndex(len(g:S_allBuffers[g:S_HackDisplayBuffer].History))
   endif
@@ -790,6 +792,9 @@ function! g:S_SearchHistoryDown()
 endfunction
 
 function! g:S_AmperstyleUp()
+  if len(g:S_allBuffers[g:S_HackDisplayBuffer].searchList)==0
+    return
+  endif
   let amperIndex =  index(g:S_allBuffers[g:S_HackDisplayBuffer].searchList, len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex)
   if amperIndex != 0
     "-1 will handle the zeropoint default index which doesn't whow up in the searchList
@@ -829,7 +834,7 @@ function! g:S_HistoryUp()
     call g:S_SearchHistoryUp()
     return
   endif
-  if g:S_Amperstyle && g:S_allBuffers[g:S_HackDisplayBuffer].searchList != []
+  if g:S_Amperstyle && g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm != ""
     call g:S_AmperstyleUp()
     return
   endif
@@ -843,7 +848,7 @@ function! g:S_HistoryDown()
     call g:S_SearchHistoryDown()
     return
   endif 
-  if g:S_Amperstyle && g:S_allBuffers[g:S_HackDisplayBuffer].searchList != []
+  if g:S_Amperstyle && g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm != ""
     call g:S_AmperstyleDown()
     return
   endif
