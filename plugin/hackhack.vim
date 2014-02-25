@@ -378,29 +378,51 @@ endfunction
 
 function! g:S_GetSearchLoc(reversed, incremental)
   let downward = ( g:S_allBuffers[g:S_HackDisplayBuffer].SearchMode=="/" && !a:reversed || g:S_allBuffers[g:S_HackDisplayBuffer].SearchMode=="?" && a:reversed)
-  let reverseHistoryIndex=len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex
-  let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=0
-  let searchLocation=-2
-  if a:incremental
-    let searchTerm = g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm
-  else
-    let searchTerm = g:S_allBuffers[g:S_HackDisplayBuffer].SearchTerm
+  let searchList = g:S_GetSearchList(a:incremental,0)
+  if len(searchList)==0
+    return -1
   endif
-  while searchLocation<reverseHistoryIndex && searchLocation!=-1
-    let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount+1
-    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
+  let historyLength = len(g:S_allBuffers[g:S_HackDisplayBuffer].History)
+  let searchLength = len(searchList)
+  let reverseHistoryIndex = historyLength - g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex
+  let counter = 0
+  let lastSearch = -1
+  let previousSearch=-1
+  while lastSearch<reverseHistoryIndex+downward && counter<searchLength
+    let previousSearch=lastSearch
+    let lastSearch = searchList[counter]
+    let counter+=1
   endwhile
-  if downward && searchLocation==reverseHistoryIndex
-    let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount+1
-    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
-  elseif !downward
-    let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount-1
-    let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount)
+
+  "If there was nothing after the current location
+  if lastSearch<reverseHistoryIndex+downward
+    if !downward
+      return lastSearch
+    elseif &wrapscan
+      return searchList[0]
+    else
+      return -1
+    endif
   endif
-  return searchLocation
+
+  if downward 
+    return lastSearch
+  endif
+
+  "if there was nothing before the current location
+  if previousSearch < 0
+    if &wrapscan
+      return searchList[searchLength-1]
+    else
+      return -1
+    endif
+  else
+    return previousSearch
+  endif
 endfunction
 
-function! g:S_GetSearchList(incremental)
+
+function! g:S_GetSearchList(incremental, literal)
   let resultList=[]
   let searchLocation=-2
   if a:incremental
@@ -411,7 +433,11 @@ function! g:S_GetSearchList(incremental)
   let matchCount = 0
   while searchLocation!=-1
     let matchCount = matchCount + 1
-    let searchLocation = g:S_LiteralMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, matchCount)
+    if a:literal
+      let searchLocation = g:S_LiteralMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, matchCount)
+    else
+      let searchLocation = g:S_SmartMatch(g:S_allBuffers[g:S_HackDisplayBuffer].History, searchTerm, 0, matchCount)
+    endif
     if searchLocation!=-1
       let resultList += [searchLocation]
     endif
@@ -456,7 +482,7 @@ function! g:S_DoIncrementalSearch(ampersearch)
       let g:S_allBuffers[g:S_HackDisplayBuffer].searchList = []
       return
     endif
-    let g:S_allBuffers[g:S_HackDisplayBuffer].searchList = g:S_GetSearchList(1)
+    let g:S_allBuffers[g:S_HackDisplayBuffer].searchList = g:S_GetSearchList(1,1)
     let lastSpot = 0
     call g:S_GotoHackDisplay()
     normal!zE
@@ -478,7 +504,7 @@ endfunction
 
 function! g:S_DoSearch(reversed)
   let searchLocation = g:S_GetSearchLoc(a:reversed, 0)
-  if searchLocation > 0
+  if searchLocation >= 0
     call g:S_GotoHistoryIndex(len(g:S_allBuffers[g:S_HackDisplayBuffer].History)-searchLocation)
   endif
 endfunction
