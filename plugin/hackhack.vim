@@ -398,7 +398,7 @@ function! g:S_GetSearchLoc(reversed, incremental)
   if lastSearch<reverseHistoryIndex+downward
     if !downward
       return lastSearch
-    elseif &wrapscan
+    elseif g:S_IsWrapscanSet()
       return searchList[0]
     else
       return -1
@@ -411,7 +411,7 @@ function! g:S_GetSearchLoc(reversed, incremental)
 
   "if there was nothing before the current location
   if previousSearch < 0
-    if &wrapscan
+    if g:S_IsWrapscanSet()
       return searchList[searchLength-1]
     else
       return -1
@@ -1197,6 +1197,14 @@ function! g:S_IsIncsearchSet()
     return g:HackHack_incsearch
   else
     return &incsearch
+  endif
+endfunction
+
+function! g:S_IsWrapscanSet()
+  if exists("g:HackHack_wrapscan")
+    return g:HackHack_wrapscan
+  else
+    return &wrapscan
   endif
 endfunction
 
