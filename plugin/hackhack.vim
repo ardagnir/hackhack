@@ -157,8 +157,8 @@ function! HackHack(commandName, ...)
     autocmd! CursorMovedI 
   augroup END
   augroup HackHack
-    autocmd CursorHold  <buffer> call g:S_UpdateTerminal(0, 0)
-    autocmd CursorHoldI <buffer> call g:S_UpdateTerminal(1, 0)
+    autocmd CursorHold  <buffer> call g:S_UpdateTerminal(0)
+    autocmd CursorHoldI <buffer> call g:S_UpdateTerminal(1)
     autocmd VimResized  <buffer> call g:S_HandleResize(0)
   augroup END
   if bufexists(g:S_allBuffers[g:S_HackDisplayBuffer].windowName)
@@ -185,8 +185,8 @@ function! HackHack(commandName, ...)
   nnoremap <silent> <buffer> <CR> :call g:S_CarriageReturn(0)<CR>
   augroup HackHack
     autocmd VimResized   <buffer> call g:S_HandleResize(1)
-    autocmd CursorHoldI  <buffer> call g:S_UpdateTerminal(1, 1)
-    autocmd CursorHold   <buffer> call g:S_UpdateTerminal(0, 1)
+    autocmd CursorHoldI  <buffer> call g:S_UpdateTerminal(1)
+    autocmd CursorHold   <buffer> call g:S_UpdateTerminal(0)
     autocmd CursorHold   *        call g:S_UpdateCurrentWindow()
     autocmd CursorHoldI  *        call g:S_UpdateCurrentWindow()
     autocmd BufEnter     *        call g:S_BufferSwitch()
@@ -242,18 +242,17 @@ endfunction
 
 function! g:S_UpdateCurrentWindow()
   if g:S_WindowSwitched==1
-    let saveNewBuffer = g:S_NewBuffer
     if has_key(g:S_allBuffers,g:S_HackDisplayBuffer) && expand('%')!=g:S_allBuffers[g:S_HackDisplayBuffer].windowName
       "We left a hackbuffer (but not to its prompt)
       let saveWinnr=winnr()
       let g:S_allBuffers[g:S_HackDisplayBuffer].HackMode = 'browse'
       call g:S_HidePrompt()
-      let g:S_HackDisplayBuffer = saveNewBuffer
+      let g:S_HackDisplayBuffer = g:S_NewBuffer
+      exec bufwinnr(g:S_NewBuffer)."wincmd w"
     elseif !has_key(g:S_allBuffers, g:S_HackDisplayBuffer)
       "We left a nonhack buffer
-      let g:S_HackDisplayBuffer = saveNewBuffer
+      let g:S_HackDisplayBuffer = g:S_NewBuffer
     endif
-    exec bufwinnr(g:S_NewBuffer)."wincmd w"
     let g:S_CurrentBuffer=g:S_NewBuffer
     let g:S_WindowSwitched = 0
   endif
@@ -598,18 +597,17 @@ function! g:S_ShowPrompt()
   call g:S_AddArrow()
 endfunction
 
-function! g:S_UpdateTerminal(insert_mode, hackPrompt)
+function! g:S_UpdateTerminal(insert_mode)
     if !has_key(g:S_allBuffers,g:S_HackDisplayBuffer)
       return
     endif
-
-    if(a:insert_mode && a:hackPrompt && g:S_IsIncsearchSet() && g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch)
+    let hackPrompt = (winbufnr(winnr()) != g:S_HackDisplayBuffer)
+    if(a:insert_mode && hackPrompt && g:S_IsIncsearchSet() && g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch)
       call g:S_DoIncrementalSearch(0)
     elseif g:S_Amperstyle && !g:S_allBuffers[g:S_HackDisplayBuffer].TypingSearch
       call g:S_DoIncrementalSearch(1)
     endif
 
-    let hackPrompt=a:hackPrompt
     let insert_mode=a:insert_mode
     if g:S_allBuffers[g:S_HackDisplayBuffer].HackMode == 'browse'
       return
