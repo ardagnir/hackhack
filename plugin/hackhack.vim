@@ -60,6 +60,7 @@ function! HackHack(commandName, ...)
   let g:S_allBuffers[g:S_HackDisplayBuffer].IncSearchTerm=""
   let g:S_allBuffers[g:S_HackDisplayBuffer].MatchCount=0
   let g:S_allBuffers[g:S_HackDisplayBuffer].AmperTest=""
+  let g:S_allBuffers[g:S_HackDisplayBuffer].TerminalNumber=conque_term#get_instance( ).idx
 
   let g:S_allBuffers[g:S_HackDisplayBuffer].FirstTab = ""
 
@@ -156,11 +157,6 @@ function! HackHack(commandName, ...)
     autocmd! CursorMoved 
     autocmd! CursorMovedI 
   augroup END
-  augroup HackHack
-    autocmd CursorHold  <buffer> call g:S_UpdateTerminal(0)
-    autocmd CursorHoldI <buffer> call g:S_UpdateTerminal(1)
-    autocmd VimResized  <buffer> call g:S_HandleResize(0)
-  augroup END
   if bufexists(g:S_allBuffers[g:S_HackDisplayBuffer].windowName)
     let counter = 0
     while bufexists(g:S_allBuffers[g:S_HackDisplayBuffer].windowName.counter)
@@ -184,11 +180,11 @@ function! HackHack(commandName, ...)
   inoremap <silent> <buffer> <CR> <C-O>:call g:S_CarriageReturn(1)<CR>
   nnoremap <silent> <buffer> <CR> :call g:S_CarriageReturn(0)<CR>
   augroup HackHack
-    autocmd VimResized   <buffer> call g:S_HandleResize(1)
-    autocmd CursorHoldI  <buffer> call g:S_UpdateTerminal(1)
-    autocmd CursorHold   <buffer> call g:S_UpdateTerminal(0)
+    autocmd VimResized   *        call g:S_HandleResize()
     autocmd CursorHold   *        call g:S_UpdateCurrentWindow()
     autocmd CursorHoldI  *        call g:S_UpdateCurrentWindow()
+    autocmd CursorHold   *        call g:S_UpdateTerminal(0)
+    autocmd CursorHoldI  *        call g:S_UpdateTerminal(1)
     autocmd BufEnter     *        call g:S_BufferSwitch()
   augroup END
   inoremap <silent> <buffer> <UP> <C-O>:call g:S_HistoryUp()<CR>
@@ -242,18 +238,20 @@ endfunction
 
 function! g:S_UpdateCurrentWindow()
   if g:S_WindowSwitched==1
+    let saveNew=g:S_NewBuffer
     if has_key(g:S_allBuffers,g:S_HackDisplayBuffer) && expand('%')!=g:S_allBuffers[g:S_HackDisplayBuffer].windowName
       "We left a hackbuffer (but not to its prompt)
-      let saveWinnr=winnr()
       let g:S_allBuffers[g:S_HackDisplayBuffer].HackMode = 'browse'
       call g:S_HidePrompt()
-      let g:S_HackDisplayBuffer = g:S_NewBuffer
-      exec bufwinnr(g:S_NewBuffer)."wincmd w"
+      let g:S_HackDisplayBuffer = saveNew
+      exec bufwinnr(saveNew)."wincmd w"
     elseif !has_key(g:S_allBuffers, g:S_HackDisplayBuffer)
       "We left a nonhack buffer
-      let g:S_HackDisplayBuffer = g:S_NewBuffer
+      let g:S_HackDisplayBuffer = saveNew
     endif
     let g:S_CurrentBuffer=g:S_NewBuffer
+    let g:SaveCurrent = g:S_CurrentBuffer
+    let g:SaveHD = g:S_HackDisplayBuffer
     let g:S_WindowSwitched = 0
   endif
 endfunction
@@ -486,12 +484,16 @@ function! g:S_DoSearch(reversed)
   endif
 endfunction
 
+function! g:S_GetCurrentInstance()
+  return conque_term#get_instance(g:S_allBuffers[g:S_HackDisplayBuffer].TerminalNumber)
+endfunction
+
 let g:lastPathString=""
 "eventully i should loop through all hhbuffers here
 "
 function! g:S_ReadAndUpdatePromptChar(howLong)
     " Don't do all this work if there's nothing to be read.
-    if conque_term#get_instance().peak() == 0
+    if g:S_GetCurrentInstance().peak() == 0
       call g:S_SetToPotentialPrompt()
       echo ""
       return
@@ -503,9 +505,9 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
     else
       echo ""
     endif
-    let readOutput=conque_term#get_instance().read(a:howLong)
+    let readOutput=g:S_GetCurrentInstance().read(a:howLong)
     "Read can move to a different buffer. We should move back
-    call g:S_GotoHackDisplay()
+    "call g:S_GotoHackDisplay()
     "Conqueterm will set the status line if it gets changed by a control char
     if g:S_allBuffers[g:S_HackDisplayBuffer].HackMode == 'readline'
       call g:S_DashStatusLine()
@@ -518,7 +520,7 @@ function! g:S_ReadAndUpdatePromptChar(howLong)
       let g:readOup= readOutput
       if match(readOutput, '\V'.g:S_allBuffers[g:S_HackDisplayBuffer].PreTab)!=-1
         let g:S_allBuffers[g:S_HackDisplayBuffer].HackMode = 'readline'
-        call conque_term#get_instance().write("\x15")
+        call g:S_GetCurrentInstance().write("\x15")
       endif
     else
       let findSavePoint = match(readOutput,'\V[?1049h')
@@ -644,7 +646,7 @@ function! g:S_DoubleTab(capturedKeys)
       exec "normal!yy"
       let g:S_allBuffers[g:S_HackDisplayBuffer].PreTab = @"[2:-2]
       call setreg('"',tempReg,regType)
-      call conque_term#get_instance().write(a:capturedKeys."\t\t")
+      call g:S_GetCurrentInstance().write(a:capturedKeys."\t\t")
       let g:S_allBuffers[g:S_HackDisplayBuffer].HackMode = 'tab'
       let g:S_allBuffers[g:S_HackDisplayBuffer].TempBuffer = g:S_allBuffers[g:S_HackDisplayBuffer].FirstTab
       call g:S_HidePrompt()
@@ -666,15 +668,15 @@ function! g:S_TabPress()
       let g:S_allBuffers[g:S_HackDisplayBuffer].FirstTab = ""
       return
     endif
-    call conque_term#get_instance().write(capturedKeys."\t")
+    call g:S_GetCurrentInstance().write(capturedKeys."\t")
     let tabcompletevar=""
     let sanity=10
     while sanity > 0 && (tabcompletevar=="" || tabcompletevar==capturedKeys)
-      let tabcompletevar=tabcompletevar.conque_term#get_instance().read(50,0)
+      let tabcompletevar=tabcompletevar.g:S_GetCurrentInstance().read(50,0)
       let sanity=sanity-1
     endwhile
-    call conque_term#get_instance().write("\x15")
-    call conque_term#get_instance().read(50,0)
+    call g:S_GetCurrentInstance().write("\x15")
+    call g:S_GetCurrentInstance().read(50,0)
     silent call g:S_GotoHackPrompt()
     exec "normal!\"_ddi".tabcompletevar
     if tabcompletevar == capturedKeys
@@ -702,7 +704,7 @@ function! g:S_SendLine(line)
   let g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint=getpos('.')[1]
   let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine=g:S_allBuffers[g:S_HackDisplayBuffer].HistoryLine+[g:S_allBuffers[g:S_HackDisplayBuffer].ZeroArrowPoint]
   let g:S_allBuffers[g:S_HackDisplayBuffer].HistoryIndex=0
-  call conque_term#get_instance().write(a:line)
+  call g:S_GetCurrentInstance().write(a:line)
   call g:S_RemoveArrow()
   call g:S_ReadAndUpdatePromptChar(80)
   call g:S_JumpToLastLine()
@@ -977,18 +979,18 @@ function! g:S_ExtendLines()
   if numLines<winheight
     exec "normal!".(winheight(winnr())-numLines)."o\<ESC>G"
   endif
-    call g:S_JumpToLastLine()
-    let topLine=getpos('.')[1]
-    normal!G
-    let numLines=getpos('.')[1]-topLine+1
-    if numLines>winheight
-      if numLines>winheight+1
-        exec "normal!d".(numLines-winheight-1)."k"
-      else
-        exec "normal!dd"
-      endif
+  call g:S_JumpToLastLine()
+  let topLine=getpos('.')[1]
+  normal!G
+  let numLines=getpos('.')[1]-topLine+1
+  if numLines>winheight
+    if numLines>winheight+1
+      exec "normal!d".(numLines-winheight-1)."k"
+    else
+      exec "normal!dd"
     endif
-  return
+  endif
+  normal!Gzb
 endfunction
 
 function! g:S_JumpToLastLine()
@@ -1053,29 +1055,30 @@ function! g:S_MapTabKeys()
 endfunction
       
 function! g:S_TabCC()
-  call conque_term#get_instance().write(nr2char(3))
+  call g:S_GetCurrentInstance().write(nr2char(3))
   let g:S_allBuffers[g:S_HackDisplayBuffer].HackMode = 'readline'
-  call conque_term#get_instance().write("\x15")
+  call g:S_GetCurrentInstance().write("\x15")
   let g:S_allBuffers[g:S_HackDisplayBuffer].TempBuffer = ''
   call g:S_ShowPrompt()
   startinsert!
 endfunction
 
+"These might be faster if I use conque to do a combined write/read
 function! g:S_MapDirectInputKeys()
   let g:i=1
   while g:i<256
     if g:i==124
-      silent exec "nnoremap <nowait> <buffer> \\| :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> \\| :call g:S_GetCurrentInstance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     elseif g:i==9
-      silent exec "nnoremap <nowait> <buffer> <TAB> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> <TAB> :call g:S_GetCurrentInstance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     elseif g:i==10
-      silent exec "nnoremap <nowait> <buffer> <C-J> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> <C-J> :call g:S_GetCurrentInstance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     elseif g:i==22
-      silent exec "nnoremap <nowait> <buffer> <C-V> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> <C-V> :call g:S_GetCurrentInstance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     elseif g:i==32
-      silent exec "nnoremap <nowait> <buffer> <SPACE> :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> <SPACE> :call g:S_GetCurrentInstance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     else
-      silent exec "nnoremap <nowait> <buffer> ".nr2char(g:i)." :call conque_term#get_instance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
+      silent exec "nnoremap <nowait> <buffer> ".nr2char(g:i)." :call g:S_GetCurrentInstance().write(nr2char(".g:i."))<CR>:call g:S_ReadAndUpdatePromptChar(0)<CR>"
     endif
     let g:i+=1
   endwhile
@@ -1102,12 +1105,10 @@ function! g:S_UnmapDirectInputKeys()
 endfunction
 
 function! g:S_GotoHackPrompt()
-  let g:S_CurrentBuffer = bufwinnr(g:S_allBuffers[g:S_HackDisplayBuffer].HackPromptBuffer)
   exec bufwinnr(g:S_allBuffers[g:S_HackDisplayBuffer].HackPromptBuffer)."wincmd w"
 endfunction
 
 function! g:S_GotoHackDisplay()
-  let g:S_CurrentBuffer = bufwinnr(g:S_HackDisplayBuffer)
   exec bufwinnr(g:S_HackDisplayBuffer)."wincmd w"
 endfunction
 
@@ -1141,18 +1142,19 @@ function! g:S_RestoreMark(mark)
   endif
 endfunction
 
-function! g:S_HandleResize(hackPrompt)
+function! g:S_HandleResize()
   if g:S_allBuffers[g:S_HackDisplayBuffer].HackMode!='readline'
     return
   endif
-  if a:hackPrompt
+  let hackPrompt = (winbufnr(winnr()) != g:S_HackDisplayBuffer)
+  if hackPrompt
     call g:S_GotoHackDisplay()
   endif
   call g:S_UnDashify()
   normal!G
   call g:S_ExtendLines()
   call g:S_Dashify()
-  if a:hackPrompt
+  if hackPrompt
     call g:S_GotoHackPrompt()
   endif
 endfunction
