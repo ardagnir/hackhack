@@ -148,7 +148,6 @@ function! HackHack(commandName, ...)
   set foldminlines=0
   hi Folded ctermfg=DarkBlue cterm=bold ctermbg=black guifg=darkgrey
   call matchadd('HHBorder', '^¦')
-  "TODO: This is bad for multihack
   augroup HackHack
     autocmd! CursorHold 
     autocmd! CursorHoldI 
